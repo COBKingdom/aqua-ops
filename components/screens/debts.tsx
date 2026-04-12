@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
 
 export function Debts() {
   const [debts, setDebts] = useState<any[]>([])
@@ -44,6 +45,7 @@ export function Debts() {
   }
 
   async function fetchDebts() {
+    const factoryId = getFactoryId()
     const range = getDateRange()
     if (!range) return
 
@@ -52,6 +54,7 @@ export function Debts() {
     const { data } = await supabase
       .from("sales")
       .select("*")
+       .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, ShoppingCart } from "lucide-react"
+import { getFactoryId } from "@/lib/factory"
 
 export function Sales() {
   const [saved, setSaved] = useState(false)
@@ -20,6 +21,7 @@ export function Sales() {
   })
 
   const handleSubmit = async () => {
+    const factoryId = getFactoryId()
     if (!form.bagsSold || !form.pricePerBag || !form.customerName) return
 
     const total =
@@ -29,7 +31,7 @@ export function Sales() {
 
     const { error } = await supabase.from("sales").insert([
       {
-        factory_id: "96f00619-05be-40f3-bfcf-fe6881b8922e",
+        factory_id: factoryId,
         date: form.date,
         customer_name: form.customerName,
         bags_sold: parseInt(form.bagsSold),

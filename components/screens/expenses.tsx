@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, Wallet } from "lucide-react"
+import { getFactoryId } from "@/lib/factory"
 
 export function Expenses() {
   const [saved, setSaved] = useState(false)
@@ -19,11 +20,12 @@ export function Expenses() {
   })
 
   const handleSubmit = async () => {
+    const factoryId = getFactoryId()
     if (!form.amount || !form.category) return
 
     const { error } = await supabase.from("expenses").insert([
       {
-        factory_id: "96f00619-05be-40f3-bfcf-fe6881b8922e",
+       factory_id: factoryId,
         date: form.date,
         category: form.category,
         amount: parseInt(form.amount),

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
 
 export function Dashboard() {
   const [filter, setFilter] = useState("today")
@@ -49,6 +50,7 @@ export function Dashboard() {
   }
 
   async function fetchData() {
+    const factoryId = getFactoryId()
     const range = getDateRange()
     if (!range) return
 
@@ -57,6 +59,7 @@ export function Dashboard() {
     const { data: production } = await supabase
       .from("production")
       .select("bags_produced")
+      .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 
@@ -69,6 +72,7 @@ export function Dashboard() {
     const { data: sales } = await supabase
       .from("sales")
       .select("total_amount, balance, amount_paid")
+      .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 
@@ -89,6 +93,7 @@ export function Dashboard() {
     const { data: expenses } = await supabase
       .from("expenses")
       .select("amount")
+      .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 

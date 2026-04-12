@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAppStore, type ProductType, type Shift } from "@/lib/store"
 import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
 
 export function Production() {
   const { addProduction } = useAppStore()
@@ -22,12 +23,13 @@ export function Production() {
   })
 
   const handleSubmit = async () => {
+    const factoryId = getFactoryId()
     if (!form.bagsProduced || !form.piecesPerBag) return
 
     // ✅ SAVE TO SUPABASE
     const { error } = await supabase.from("production").insert([
       {
-        factory_id: "96f00619-05be-40f3-bfcf-fe6881b8922e",
+        factory_id: factoryId,
         date: form.date,
         product_type: form.productType,
         bags_produced: parseInt(form.bagsProduced),
