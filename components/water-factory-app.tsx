@@ -13,7 +13,7 @@ export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState("")
   const [tempName, setTempName] = useState("")
-  const [loading, setLoading] = useState(true)
+
 
 useEffect(() => {
   const name = getFactoryName()
@@ -22,7 +22,7 @@ useEffect(() => {
     setFactoryNameState(name)
   }
 
-  setLoading(false)
+
 }, [])
   const handleSaveName = () => {
     if (!tempName.trim()) return
@@ -39,13 +39,7 @@ useEffect(() => {
     if (activeTab === "debts") return <Debts />
     return <Dashboard />
   }
-    if (loading) {
-    return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-500">Loading...</p>
-    </div>
-  )
-}
+
   // 🔥 SHOW INPUT SCREEN IF NO FACTORY NAME
   if (!factoryName) {
     return (
@@ -77,17 +71,32 @@ useEffect(() => {
     <div className="min-h-screen bg-gray-50 max-w-md mx-auto shadow-lg flex flex-col">
       
       {/* HEADER */}
-      <div className="flex items-center gap-3 p-4 border-b bg-white">
-        <img
-          src="/icon-192.png"
-          alt="AquaOps Logo"
-          className="w-8 h-8 rounded"
-        />
-        <div>
-          <h1 className="text-lg font-bold">AquaOps</h1>
-          <p className="text-sm text-gray-500">{factoryName}</p>
-        </div>
-      </div>
+      <div className="flex items-center justify-between p-4 border-b bg-white">
+  <div className="flex items-center gap-3">
+    <img
+      src="/icon-192.png"
+      alt="AquaOps Logo"
+      className="w-8 h-8 rounded"
+    />
+    <div>
+      <h1 className="text-lg font-bold">AquaOps</h1>
+      <p className="text-sm text-gray-500">{factoryName}</p>
+    </div>
+  </div>
+
+  <button
+    onClick={() => {
+      const newName = prompt("Enter new factory name")
+      if (newName && newName.trim() !== "") {
+        setFactoryName(newName)
+        setFactoryNameState(newName)
+      }
+    }}
+    className="text-sm bg-gray-200 px-3 py-1 rounded"
+  >
+    Change
+  </button>
+</div>
 
       {/* SCREEN */}
       <div className="flex-1 overflow-y-auto">
