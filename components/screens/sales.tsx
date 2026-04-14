@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, ShoppingCart } from "lucide-react"
 import { getFactoryId } from "@/lib/factory"
-
+  declare global {
+   interface Window {
+    gtag: any
+  }
+}
 export function Sales() {
   const [saved, setSaved] = useState(false)
 
@@ -47,7 +51,9 @@ export function Sales() {
       alert("Error saving sale")
       return
     }
-
+   window.gtag('event', 'sale_recorded', {
+    value: total,
+})
     setSaved(true)
 
     setTimeout(() => {

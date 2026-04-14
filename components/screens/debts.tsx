@@ -4,6 +4,12 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
 
+declare global {
+  interface Window {
+    gtag: any
+  }
+}
+
 export function Debts() {
   const [debts, setDebts] = useState<any[]>([])
   const [filter, setFilter] = useState("today")
@@ -54,7 +60,7 @@ export function Debts() {
     const { data } = await supabase
       .from("sales")
       .select("*")
-       .eq("factory_id", factoryId)
+      .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 
@@ -102,6 +108,13 @@ export function Debts() {
           .eq("id", sale.id)
 
         payment -= deduction
+
+        // ✅ TRACK EVENT HERE (VERY IMPORTANT)
+        if (window.gtag) {
+          window.gtag('event', 'debt_payment', {
+            value: deduction,
+          })
+        }
       }
     }
 

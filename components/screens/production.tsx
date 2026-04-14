@@ -9,7 +9,11 @@ import { Label } from "@/components/ui/label"
 import { useAppStore, type ProductType, type Shift } from "@/lib/store"
 import { supabase } from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
-
+  declare global {
+   interface Window {
+    gtag: any
+  }
+}
 export function Production() {
   const { addProduction } = useAppStore()
   const [saved, setSaved] = useState(false)
@@ -43,7 +47,9 @@ export function Production() {
       alert("Error saving to database")
       return
     }
-
+    window.gtag('event', 'production_saved', {
+      value: parseInt(form.bagsProduced),
+})
     // ✅ KEEP EXISTING LOCAL STATE
     addProduction({
       date: form.date,

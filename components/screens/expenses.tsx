@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, Wallet } from "lucide-react"
 import { getFactoryId } from "@/lib/factory"
-
+declare global {
+  interface Window {
+    gtag: any
+  }
+}
 export function Expenses() {
   const [saved, setSaved] = useState(false)
 
@@ -38,7 +42,9 @@ export function Expenses() {
       alert("Error saving expense")
       return
     }
-
+     window.gtag('event', 'expense_added', {
+      value: parseInt(form.amount),
+})
     setSaved(true)
 
     setTimeout(() => {
