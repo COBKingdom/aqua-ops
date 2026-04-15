@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Package, ShoppingCart, Wallet, Users } from "lucide-react"
+import { Home, Package, ShoppingCart, Wallet, Users, BarChart3 } from "lucide-react"
 
 interface BottomNavProps {
   activeTab: string
@@ -14,10 +14,11 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
     { id: "sales", label: "Sales", icon: ShoppingCart },
     { id: "expenses", label: "Expenses", icon: Wallet },
     { id: "debts", label: "Debts", icon: Users },
+    { id: "reports", label: "Reports", icon: BarChart3 }, // ✅ NEW
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white shadow-md border-t shadow-sm flex justify-around py-2">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2">
       {tabs.map((tab) => {
         const Icon = tab.icon
 
