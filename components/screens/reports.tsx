@@ -6,7 +6,9 @@ import { getFactoryId, getFactoryName } from "@/lib/factory"
 
 export function Reports() {
   const [filter, setFilter] = useState("today")
-  const [data, setData] = useState({
+  const [view, setView] = useState("summary")
+
+  const [summary, setSummary] = useState({
     production: 0,
     sales: 0,
     expenses: 0,
@@ -14,8 +16,12 @@ export function Reports() {
     debt: 0,
   })
 
+  const [productionList, setProductionList] = useState<any[]>([])
+  const [salesList, setSalesList] = useState<any[]>([])
+  const [expensesList, setExpensesList] = useState<any[]>([])
+
   useEffect(() => {
-    fetchReport()
+    fetchData()
   }, [filter])
 
   function getDateRange() {
@@ -50,36 +56,37 @@ export function Reports() {
     }
   }
 
-  async function fetchReport() {
+  async function fetchData() {
     const factoryId = getFactoryId()
     const range = getDateRange()
     if (!range) return
 
     const { start, end } = range
 
-    // Production
     const { data: production } = await supabase
       .from("production")
-      .select("bags_produced")
+      .select("*")
       .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 
-    // Sales
     const { data: sales } = await supabase
       .from("sales")
-      .select("total_amount, balance")
+      .select("*")
       .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
 
-    // Expenses
     const { data: expenses } = await supabase
       .from("expenses")
-      .select("amount")
+      .select("*")
       .eq("factory_id", factoryId)
       .gte("date", start)
       .lte("date", end)
+
+    setProductionList(production || [])
+    setSalesList(sales || [])
+    setExpensesList(expenses || [])
 
     const totalProduction =
       production?.reduce((sum, p) => sum + p.bags_produced, 0) || 0
@@ -95,7 +102,7 @@ export function Reports() {
 
     const profit = totalSales - totalExpenses
 
-    setData({
+    setSummary({
       production: totalProduction,
       sales: totalSales,
       expenses: totalExpenses,
@@ -104,7 +111,7 @@ export function Reports() {
     })
   }
 
-  const copyReport = () => {
+  const shareWhatsApp = () => {
     const factoryName = getFactoryName() || "My Factory"
 
     const report = `
@@ -113,15 +120,15 @@ export function Reports() {
 Factory: ${factoryName}
 Period: ${filter.toUpperCase()}
 
-Production: ${data.production} bags
-Sales: ₦${data.sales.toLocaleString()}
-Expenses: ₦${data.expenses.toLocaleString()}
-Profit: ₦${data.profit.toLocaleString()}
-Debt: ₦${data.debt.toLocaleString()}
+Production: ${summary.production}
+Sales: ₦${summary.sales.toLocaleString()}
+Expenses: ₦${summary.expenses.toLocaleString()}
+Profit: ₦${summary.profit.toLocaleString()}
+Debt: ₦${summary.debt.toLocaleString()}
 `
 
-    navigator.clipboard.writeText(report)
-    alert("Report copied! You can paste on WhatsApp 📲")
+    const encoded = encodeURIComponent(report)
+    window.open(`https://wa.me/?text=${encoded}`, "_blank")
   }
 
   return (
@@ -135,9 +142,7 @@ Debt: ₦${data.debt.toLocaleString()}
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-full ${
-              filter === f
-                ? "bg-black text-white"
-                : "bg-gray-200"
+              filter === f ? "bg-black text-white" : "bg-gray-200"
             }`}
           >
             {f.toUpperCase()}
@@ -145,51 +150,81 @@ Debt: ₦${data.debt.toLocaleString()}
         ))}
       </div>
 
-      {/* REPORT CARDS */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Production</p>
-          <p className="text-xl font-bold">
-            {data.production.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Sales</p>
-          <p className="text-xl font-bold">
-            ₦{data.sales.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Expenses</p>
-          <p className="text-xl font-bold">
-            ₦{data.expenses.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Profit</p>
-          <p className="text-xl font-bold text-green-600">
-            ₦{data.profit.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl shadow col-span-2">
-          <p className="text-gray-500">Debt</p>
-          <p className="text-xl font-bold text-red-600">
-            ₦{data.debt.toLocaleString()}
-          </p>
-        </div>
+      {/* VIEW SWITCH */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setView("summary")}
+          className={`px-4 py-2 rounded ${
+            view === "summary" ? "bg-black text-white" : "bg-gray-200"
+          }`}
+        >
+          Summary
+        </button>
+        <button
+          onClick={() => setView("history")}
+          className={`px-4 py-2 rounded ${
+            view === "history" ? "bg-black text-white" : "bg-gray-200"
+          }`}
+        >
+          History
+        </button>
       </div>
 
-      {/* COPY BUTTON */}
-      <button
-        onClick={copyReport}
-        className="w-full bg-black text-white py-3 rounded-xl"
-      >
-        Copy Report (WhatsApp Ready)
-      </button>
+      {/* SUMMARY */}
+      {view === "summary" && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded shadow">
+              Production: {summary.production}
+            </div>
+            <div className="bg-white p-4 rounded shadow">
+              Sales: ₦{summary.sales.toLocaleString()}
+            </div>
+            <div className="bg-white p-4 rounded shadow">
+              Expenses: ₦{summary.expenses.toLocaleString()}
+            </div>
+            <div className="bg-white p-4 rounded shadow">
+              Profit: ₦{summary.profit.toLocaleString()}
+            </div>
+            <div className="bg-white p-4 rounded shadow col-span-2">
+              Debt: ₦{summary.debt.toLocaleString()}
+            </div>
+          </div>
+
+          <button
+            onClick={shareWhatsApp}
+            className="w-full bg-green-600 text-white py-3 rounded"
+          >
+            Send via WhatsApp
+          </button>
+        </>
+      )}
+
+      {/* HISTORY */}
+      {view === "history" && (
+        <div className="space-y-4">
+          <h2 className="font-bold">Production</h2>
+          {productionList.map((p, i) => (
+            <div key={i} className="bg-white p-3 rounded shadow">
+              {p.date} - {p.bags_produced} bags
+            </div>
+          ))}
+
+          <h2 className="font-bold">Sales</h2>
+          {salesList.map((s, i) => (
+            <div key={i} className="bg-white p-3 rounded shadow">
+              {s.customer_name} - ₦{s.total_amount}
+            </div>
+          ))}
+
+          <h2 className="font-bold">Expenses</h2>
+          {expensesList.map((e, i) => (
+            <div key={i} className="bg-white p-3 rounded shadow">
+              {e.description} - ₦{e.amount}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
