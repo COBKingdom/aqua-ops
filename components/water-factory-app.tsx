@@ -9,11 +9,13 @@ import { Debts } from "@/components/screens/debts"
 import { BottomNav } from "@/components/bottom-nav"
 import { getFactoryName, setFactoryName } from "@/lib/factory"
 import { Reports } from "@/components/screens/reports"
+import { AuthModal } from "@/components/auth-modal"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState("")
   const [tempName, setTempName] = useState("")
+  const [showAuth, setShowAuth] = useState(false)
 
 
 useEffect(() => {
@@ -84,36 +86,46 @@ useEffect(() => {
     )
   }
 
-  return (
+return (
+  <>
     <div className="min-h-screen bg-gray-50 max-w-md mx-auto shadow-lg flex flex-col">
       
       {/* HEADER */}
       <div className="flex items-center justify-between p-4 border-b bg-white">
-  <div className="flex items-center gap-3">
-    <img
-      src="/icon-192.png"
-      alt="AquaOps Logo"
-      className="w-8 h-8 rounded"
-    />
-    <div>
-      <h1 className="text-lg font-bold">AquaOps</h1>
-      <p className="text-sm text-gray-500">{factoryName}</p>
-    </div>
-  </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="/icon-192.png"
+            alt="AquaOps Logo"
+            className="w-8 h-8 rounded"
+          />
+          <div>
+            <h1 className="text-lg font-bold">AquaOps</h1>
+            <p className="text-sm text-gray-500">{factoryName}</p>
+          </div>
+        </div>
 
-  <button
-    onClick={() => {
-      const newName = prompt("Enter new factory name")
-      if (newName && newName.trim() !== "") {
-        setFactoryName(newName)
-        setFactoryNameState(newName)
-      }
-    }}
-    className="text-sm bg-gray-200 px-3 py-1 rounded"
-  >
-    Change
-  </button>
-</div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAuth(true)}
+            className="text-sm bg-black text-white px-3 py-1 rounded"
+          >
+            Login
+          </button>
+
+          <button
+            onClick={() => {
+              const newName = prompt("Enter new factory name")
+              if (newName && newName.trim() !== "") {
+                setFactoryName(newName)
+                setFactoryNameState(newName)
+              }
+            }}
+            className="text-sm bg-gray-200 px-3 py-1 rounded"
+          >
+            Change
+          </button>
+        </div>
+      </div>
 
       {/* SCREEN */}
       <div className="flex-1 overflow-y-auto">
@@ -126,5 +138,8 @@ useEffect(() => {
         setActiveTab={setActiveTab}
       />
     </div>
-  )
+
+    {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+  </>
+)
 }
