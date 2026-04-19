@@ -131,6 +131,31 @@ Debt: ₦${summary.debt.toLocaleString()}
     window.open(`https://wa.me/?text=${encoded}`, "_blank")
   }
 
+  const sendEmail = () => {
+    const factoryName = getFactoryName() || "My Factory"
+
+    const subject = `AquaOps Report - ${factoryName}`
+
+    const body = `
+AquaOps Report
+
+Factory: ${factoryName}
+Period: ${filter.toUpperCase()}
+
+Production: ${summary.production}
+Sales: ₦${summary.sales.toLocaleString()}
+Expenses: ₦${summary.expenses.toLocaleString()}
+Profit: ₦${summary.profit.toLocaleString()}
+Debt: ₦${summary.debt.toLocaleString()}
+`
+
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`
+
+    window.location.href = mailtoLink
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 p-4 pb-24">
       <h1 className="text-2xl font-bold">Reports</h1>
@@ -191,12 +216,21 @@ Debt: ₦${summary.debt.toLocaleString()}
             </div>
           </div>
 
-          <button
-            onClick={shareWhatsApp}
-            className="w-full bg-green-600 text-white py-3 rounded"
-          >
-            Send via WhatsApp
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={shareWhatsApp}
+              className="w-full bg-green-600 text-white py-3 rounded"
+            >
+              Send via WhatsApp
+            </button>
+
+            <button
+              onClick={sendEmail}
+              className="w-full bg-blue-600 text-white py-3 rounded"
+            >
+              Send via Email
+            </button>
+          </div>
         </>
       )}
 
@@ -213,14 +247,14 @@ Debt: ₦${summary.debt.toLocaleString()}
           <h2 className="font-bold">Sales</h2>
           {salesList.map((s, i) => (
             <div key={i} className="bg-white p-3 rounded shadow">
-              {s.customer_name} - ₦{s.total_amount}
+              {s.customer_name} - ₦{s.total_amount.toLocaleString()}
             </div>
           ))}
 
           <h2 className="font-bold">Expenses</h2>
           {expensesList.map((e, i) => (
             <div key={i} className="bg-white p-3 rounded shadow">
-              {e.description} - ₦{e.amount}
+              {e.description} - ₦{e.amount.toLocaleString()}
             </div>
           ))}
         </div>
