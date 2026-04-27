@@ -19,18 +19,11 @@ export default function Home() {
           Track your real profit, expenses, and customer debt — all in one place.
         </p>
 
-        <a
-          href="/aquaops"
-          className="inline-block bg-black text-white px-6 py-3 rounded-xl shadow-lg hover:scale-105 transition"
-        >
-          Start with AquaOps
-        </a>
-
       </section>
 
       {/* PROBLEM */}
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold">The Reality</h2>
+        <h2 className="text-2xl font-semibold">The Problem</h2>
 
         <ul className="list-disc pl-5 text-gray-700 space-y-2">
           <li>You are making sales… but don’t know your real profit</li>
@@ -41,10 +34,10 @@ export default function Home() {
 
       {/* SOLUTION */}
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold">What TrueOps Does</h2>
+        <h2 className="text-2xl font-semibold">The Solution</h2>
 
         <p className="text-gray-700">
-          TrueOps gives you a simple daily system to track everything that matters:
+          TrueOps gives you a simple way to track:
         </p>
 
         <ul className="list-disc pl-5 text-gray-700 space-y-2">
@@ -70,10 +63,6 @@ export default function Home() {
         <div className="border p-4 rounded-xl">
           <h3 className="font-bold">💧 AquaOps</h3>
           <p className="text-gray-600">For water factories</p>
-
-          <a href="/aquaops" className="text-blue-600">
-            Try AquaOps →
-          </a>
         </div>
 
         <div className="border p-4 rounded-xl opacity-50">
@@ -90,7 +79,7 @@ export default function Home() {
       {/* FINAL CTA */}
       <section className="text-center space-y-4">
         <h2 className="text-xl font-semibold">
-          Start with AquaOps
+          Try AquaOps
         </h2>
 
         <p className="text-gray-600">
@@ -101,7 +90,7 @@ export default function Home() {
           href="/aquaops"
           className="inline-block bg-black text-white px-6 py-3 rounded-xl shadow-lg hover:scale-105 transition"
         >
-          Try AquaOps
+          Open AquaOps
         </a>
       </section>
 
