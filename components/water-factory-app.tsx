@@ -13,27 +13,22 @@ import { AuthModal } from "@/components/auth-modal"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [factoryName, setFactoryNameState] = useState("")
+  const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [tempName, setTempName] = useState("")
   const [showAuth, setShowAuth] = useState(false)
 
+  // ✅ LOAD SAVED FACTORY NAME
+  useEffect(() => {
+    const name = getFactoryName()
 
-useEffect(() => {
-  const name = getFactoryName()
+    if (name && name.trim() !== "") {
+      setFactoryNameState(name)
+    } else {
+      setFactoryNameState("")
+    }
+  }, [])
 
-  if (name) {
-    setFactoryNameState(name)
-  }
-
-
-}, [])
-  const handleSaveName = () => {
-    if (!tempName.trim()) return
-
-    setFactoryName(tempName)
-    setFactoryNameState(tempName)
-  }
-
+  // ✅ SCREEN RENDERER
   const renderScreen = () => {
     if (activeTab === "dashboard") return <Dashboard />
     if (activeTab === "production") return <Production />
@@ -44,102 +39,134 @@ useEffect(() => {
     return <Dashboard />
   }
 
-  // 🔥 SHOW INPUT SCREEN IF NO FACTORY NAME
-  if (!factoryName) {
+  // 🔥 ONBOARDING (FIXED)
+  if (!factoryName || factoryName.trim() === "") {
+    const isValid = tempName.trim().length > 0
+
     return (
-<div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50 text-center">
-  <h1 className="text-2xl font-bold mb-4">Welcome to AquaOps</h1>
+      <main className="min-h-screen bg-[#eef0f5] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm space-y-4">
 
-  {/* 🔥 NEW MESSAGE */}
-  <p className="text-base font-medium text-gray-800 mb-2">
-    Take full control of your water factory.
-  </p>
-  <p className="text-base font-medium text-gray-800 mb-4">
-    Track production, sales, expenses and debt in one place.
-  </p>
+          {/* HEADER */}
+          <div className="text-center flex flex-col items-center space-y-2">
+            <img
+              src="/icon-192.png"
+              alt="AquaOps Logo"
+              className="w-12 h-12 rounded-xl"
+            />
 
-  {/* SMALL TEXT */}
-  <p className="text-xs text-gray-500 mb-6">
-    Works on your phone. No installation needed.
-  </p>
+            <h1 className="text-xl font-bold text-[#0d1b3e]">
+              Welcome to AquaOps
+            </h1>
 
-  {/* INPUT LABEL */}
-<p className="text-sm text-gray-600 mb-2">
-  Enter your factory name to get started
-</p>
+            <p className="text-xs text-gray-500">
+              Enter your factory name to begin
+            </p>
+          </div>
 
-<input
-  type="text"
-  placeholder="e.g. COB Water Factory"
-  value={tempName}
-  onChange={(e) => setTempName(e.target.value)}
-  className="w-full max-w-sm p-3 border rounded-lg mb-4"
-/>
+          {/* CARD */}
+          <div className="bg-white rounded-2xl shadow-sm px-4 py-4 space-y-4">
 
-  <button
-    onClick={handleSaveName}
-    className="bg-black text-white px-6 py-3 rounded-lg w-full max-w-sm"
-  >
-    Continue
-  </button>
-</div>
+            <input
+              type="text"
+              placeholder="e.g. COB Water Factory"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#0d1b3e]"
+              autoFocus
+            />
+
+            <button
+              onClick={() => {
+                const name = tempName.trim()
+                if (!name) return
+
+                // ✅ UPDATE UI IMMEDIATELY
+                setFactoryNameState(name)
+
+                // ✅ SAVE TO STORAGE
+                setFactoryName(name)
+              }}
+              disabled={!isValid}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition ${
+                isValid
+                  ? "bg-[#0d1b3e] text-white hover:bg-[#08122b]"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              Continue →
+            </button>
+
+          </div>
+
+          <p className="text-center text-[11px] text-gray-400">
+            You can change this later
+          </p>
+
+        </div>
+      </main>
     )
   }
 
-return (
-  <>
-    <div className="min-h-screen bg-gray-50 max-w-md mx-auto shadow-lg flex flex-col">
-      
-      {/* HEADER */}
-      <div className="flex items-center justify-between p-4 border-b bg-white">
-        <div className="flex items-center gap-3">
-          <img
-            src="/icon-192.png"
-            alt="AquaOps Logo"
-            className="w-8 h-8 rounded"
-          />
-          <div>
-            <h1 className="text-lg font-bold">AquaOps</h1>
-            <p className="text-sm text-gray-500">{factoryName}</p>
+  // 🔥 MAIN APP
+  return (
+    <>
+      <div className="min-h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col">
+
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm">
+          <div className="flex items-center gap-2">
+            <img
+              src="/icon-192.png"
+              alt="AquaOps Logo"
+              className="w-8 h-8 rounded"
+            />
+            <div>
+              <h1 className="text-sm font-bold text-[#0d1b3e]">
+                AquaOps
+              </h1>
+              <p className="text-[10px] text-gray-400">
+                {factoryName}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAuth(true)}
+              className="text-xs bg-[#0d1b3e] text-white px-3 py-1.5 rounded-lg"
+            >
+              Login
+            </button>
+
+            <button
+              onClick={() => {
+                const newName = prompt("Enter new factory name")
+                if (newName && newName.trim() !== "") {
+                  setFactoryName(newName)
+                  setFactoryNameState(newName)
+                }
+              }}
+              className="text-xs bg-gray-200 px-3 py-1.5 rounded-lg"
+            >
+              Change
+            </button>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowAuth(true)}
-            className="text-sm bg-black text-white px-3 py-1 rounded"
-          >
-            Login
-          </button>
-
-          <button
-            onClick={() => {
-              const newName = prompt("Enter new factory name")
-              if (newName && newName.trim() !== "") {
-                setFactoryName(newName)
-                setFactoryNameState(newName)
-              }
-            }}
-            className="text-sm bg-gray-200 px-3 py-1 rounded"
-          >
-            Change
-          </button>
+        {/* SCREEN */}
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {renderScreen()}
         </div>
+
+        {/* NAV */}
+        <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
       </div>
 
-      {/* SCREEN */}
-      <div className="flex-1 overflow-y-auto">
-        {renderScreen()}
-      </div>
-
-      {/* NAV */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-    </div>
-
-    {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
-  </>
-)
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+    </>
+  )
 }
