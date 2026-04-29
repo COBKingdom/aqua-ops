@@ -10,12 +10,14 @@ import { BottomNav } from "@/components/bottom-nav"
 import { getFactoryName, setFactoryName } from "@/lib/factory"
 import { Reports } from "@/components/screens/reports"
 import { AuthModal } from "@/components/auth-modal"
+import { useRouter } from "next/navigation"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [tempName, setTempName] = useState("")
   const [showAuth, setShowAuth] = useState(false)
+  const router = useRouter()
 
   // ✅ LOAD SAVED FACTORY NAME
   useEffect(() => {
@@ -39,9 +41,27 @@ export default function WaterFactoryApp() {
     return <Dashboard />
   }
 
-  // 🔥 ONBOARDING (FIXED)
+  // 🔥 ONBOARDING
   if (!factoryName || factoryName.trim() === "") {
     const isValid = tempName.trim().length > 0
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault()
+
+      const name = tempName.trim()
+      if (!name) return
+
+      // ✅ Update UI immediately
+      setFactoryNameState(name)
+
+      // ✅ Save to storage
+      setFactoryName(name)
+
+      // ✅ Ensure smooth transition
+      setTimeout(() => {
+        router.push("/aquaops")
+      }, 50)
+    }
 
     return (
       <main className="min-h-screen bg-[#eef0f5] flex items-center justify-center px-4">
@@ -64,9 +84,11 @@ export default function WaterFactoryApp() {
             </p>
           </div>
 
-          {/* CARD */}
-          <div className="bg-white rounded-2xl shadow-sm px-4 py-4 space-y-4">
-
+          {/* FORM */}
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-2xl shadow-sm px-4 py-4 space-y-4"
+          >
             <input
               type="text"
               placeholder="e.g. COB Water Factory"
@@ -77,16 +99,7 @@ export default function WaterFactoryApp() {
             />
 
             <button
-              onClick={() => {
-                const name = tempName.trim()
-                if (!name) return
-
-                // ✅ UPDATE UI IMMEDIATELY
-                setFactoryNameState(name)
-
-                // ✅ SAVE TO STORAGE
-                setFactoryName(name)
-              }}
+              type="submit"
               disabled={!isValid}
               className={`w-full py-3 rounded-xl font-semibold text-sm transition ${
                 isValid
@@ -96,8 +109,7 @@ export default function WaterFactoryApp() {
             >
               Continue →
             </button>
-
-          </div>
+          </form>
 
           <p className="text-center text-[11px] text-gray-400">
             You can change this later
@@ -151,6 +163,18 @@ export default function WaterFactoryApp() {
             >
               Change
             </button>
+
+            {process.env.NODE_ENV === "development" && (
+              <button
+                onClick={() => {
+                  localStorage.clear()
+                  window.location.reload()
+                }}
+                className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg border border-red-700"
+              >
+                TEMP RESET
+              </button>
+            )}
           </div>
         </div>
 
