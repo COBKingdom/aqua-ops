@@ -11,24 +11,30 @@ import { getFactoryName, setFactoryName } from "@/lib/factory"
 import { Reports } from "@/components/screens/reports"
 import { AuthModal } from "@/components/auth-modal"
 import { useRouter } from "next/navigation"
+import { Loans } from "@/components/screens/loans"
+import { Bank } from "@/components/screens/bank"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
-  const [tempName, setTempName] = useState("")
   const [showAuth, setShowAuth] = useState(false)
   const router = useRouter()
 
-  // ✅ LOAD SAVED FACTORY NAME
+  // ✅ LOAD FACTORY NAME OR REDIRECT
   useEffect(() => {
     const name = getFactoryName()
 
     if (name && name.trim() !== "") {
       setFactoryNameState(name)
     } else {
-      setFactoryNameState("")
+      router.push("/onboarding")
     }
   }, [])
+
+  // 🚫 Prevent render before check completes
+  if (!factoryName || factoryName.trim() === "") {
+    return null
+  }
 
   // ✅ SCREEN RENDERER
   const renderScreen = () => {
@@ -38,86 +44,9 @@ export default function WaterFactoryApp() {
     if (activeTab === "expenses") return <Expenses />
     if (activeTab === "debts") return <Debts />
     if (activeTab === "reports") return <Reports />
+    if (activeTab === "loans") return <Loans />
+    if (activeTab === "bank") return <Bank />
     return <Dashboard />
-  }
-
-  // 🔥 ONBOARDING
-  if (!factoryName || factoryName.trim() === "") {
-    const isValid = tempName.trim().length > 0
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault()
-
-      const name = tempName.trim()
-      if (!name) return
-
-      // ✅ Update UI immediately
-      setFactoryNameState(name)
-
-      // ✅ Save to storage
-      setFactoryName(name)
-
-      // ✅ Ensure smooth transition
-      setTimeout(() => {
-        router.push("/aquaops")
-      }, 50)
-    }
-
-    return (
-      <main className="min-h-screen bg-[#eef0f5] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-4">
-
-          {/* HEADER */}
-          <div className="text-center flex flex-col items-center space-y-2">
-            <img
-              src="/icon-192.png"
-              alt="AquaOps Logo"
-              className="w-12 h-12 rounded-xl"
-            />
-
-            <h1 className="text-xl font-bold text-[#0d1b3e]">
-              Welcome to AquaOps
-            </h1>
-
-            <p className="text-xs text-gray-500">
-              Enter your factory name to begin
-            </p>
-          </div>
-
-          {/* FORM */}
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-2xl shadow-sm px-4 py-4 space-y-4"
-          >
-            <input
-              type="text"
-              placeholder="e.g. COB Water Factory"
-              value={tempName}
-              onChange={(e) => setTempName(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#0d1b3e]"
-              autoFocus
-            />
-
-            <button
-              type="submit"
-              disabled={!isValid}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition ${
-                isValid
-                  ? "bg-[#0d1b3e] text-white hover:bg-[#08122b]"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              Continue →
-            </button>
-          </form>
-
-          <p className="text-center text-[11px] text-gray-400">
-            You can change this later
-          </p>
-
-        </div>
-      </main>
-    )
   }
 
   // 🔥 MAIN APP

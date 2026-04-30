@@ -1,6 +1,15 @@
 "use client"
 
-import { Home, Package, ShoppingCart, Wallet, Users, BarChart3 } from "lucide-react"
+import {
+  Home,
+  Package,
+  ShoppingCart,
+  Wallet,
+  Users,
+  BarChart3,
+  Landmark,
+  Banknote
+} from "lucide-react"
 
 interface BottomNavProps {
   activeTab: string
@@ -8,14 +17,16 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
-  const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "production", label: "Production", icon: Package },
-    { id: "sales", label: "Sales", icon: ShoppingCart },
-    { id: "expenses", label: "Expenses", icon: Wallet },
-    { id: "debts", label: "Debts", icon: Users },
-    { id: "reports", label: "Reports", icon: BarChart3 }, // ✅ NEW
-  ]
+const tabs = [
+  { id: "dashboard", label: "Dashboard", icon: Home },
+  { id: "production", label: "Production", icon: Package },
+  { id: "sales", label: "Sales", icon: ShoppingCart },
+  { id: "expenses", label: "Expenses", icon: Wallet },
+  { id: "debts", label: "Debts", icon: Users },
+  { id: "loans", label: "Loans", icon: Banknote },   // ✅ FIXED
+  { id: "bank", label: "Bank", icon: Landmark },     // ✅ FIXED
+  { id: "reports", label: "Reports", icon: BarChart3 },
+]
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2">
