@@ -52,7 +52,7 @@ export default function WaterFactoryApp() {
   // 🔥 MAIN APP
   return (
     <>
-      <div className="min-h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col">
+      <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm">
@@ -108,7 +108,7 @@ export default function WaterFactoryApp() {
         </div>
 
         {/* SCREEN */}
-        <div className="flex-1 overflow-y-auto px-2 py-2">
+       <div className="flex-1 overflow-y-auto px-2 py-1">
           {renderScreen()}
         </div>
 

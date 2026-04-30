@@ -1,182 +1,148 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { getFactoryId } from "@/lib/factory"
-
-declare global {
-  interface Window {
-    gtag: any
-  }
-}
+import { useState, useEffect } from "react"
 
 export function Debts() {
   const [debts, setDebts] = useState<any[]>([])
-  const [filter, setFilter] = useState("today")
+
+  const [form, setForm] = useState({
+    name: "",
+    amount: "",
+    date: new Date().toISOString().split("T")[0],
+  })
 
   useEffect(() => {
-    fetchDebts()
-  }, [filter])
+    const saved = JSON.parse(localStorage.getItem("debts") || "[]")
+    setDebts(saved)
+  }, [])
 
-  function getDateRange() {
-    const today = new Date()
-    const format = (date: Date) => date.toISOString().split("T")[0]
+  const handleSubmit = () => {
+    if (!form.name || !form.amount) return
 
-    if (filter === "today") {
-      const d = format(today)
-      return { start: d, end: d }
+    const newDebt = {
+      ...form,
+      amount: Number(form.amount),
     }
 
-    if (filter === "week") {
-      const firstDay = new Date(
-        today.setDate(today.getDate() - today.getDay())
-      )
-      return {
-        start: format(firstDay),
-        end: format(new Date()),
-      }
-    }
+    const updated = [newDebt, ...debts]
 
-    if (filter === "month") {
-      const firstDay = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-      )
-      return {
-        start: format(firstDay),
-        end: format(new Date()),
-      }
-    }
-  }
+    setDebts(updated)
+    localStorage.setItem("debts", JSON.stringify(updated))
 
-  async function fetchDebts() {
-    const factoryId = getFactoryId()
-    const range = getDateRange()
-    if (!range) return
-
-    const { start, end } = range
-
-    const { data } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("factory_id", factoryId)
-      .gte("date", start)
-      .lte("date", end)
-
-    const grouped: any = {}
-
-    data?.forEach((item: any) => {
-      if (!grouped[item.customer_name]) {
-        grouped[item.customer_name] = {
-          customer_name: item.customer_name,
-          total_amount: 0,
-          amount_paid: 0,
-          balance: 0,
-        }
-      }
-
-      grouped[item.customer_name].total_amount += item.total_amount
-      grouped[item.customer_name].amount_paid += item.amount_paid
-      grouped[item.customer_name].balance += item.balance
+    setForm({
+      name: "",
+      amount: "",
+      date: form.date,
     })
-
-    setDebts(Object.values(grouped))
-  }
-
-  async function recordPayment(customerName: string) {
-    const amount = prompt("Enter amount paid")
-    if (!amount) return
-
-    let payment = parseInt(amount)
-
-    const { data } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("customer_name", customerName)
-
-    for (const sale of data || []) {
-      if (sale.balance > 0 && payment > 0) {
-        const deduction = Math.min(payment, sale.balance)
-
-        await supabase
-          .from("sales")
-          .update({
-            amount_paid: sale.amount_paid + deduction,
-            balance: sale.balance - deduction,
-          })
-          .eq("id", sale.id)
-
-        payment -= deduction
-
-        // ✅ TRACK EVENT HERE (VERY IMPORTANT)
-        if (window.gtag) {
-          window.gtag('event', 'debt_payment', {
-            value: deduction,
-          })
-        }
-      }
-    }
-
-    fetchDebts()
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-4 pb-24">
-      
-      <header>
-        <h1 className="text-2xl font-bold">Customer Debts</h1>
+    <div className="space-y-4 p-3 pb-20">
+
+      {/* HEADER */}
+      <header className="pt-1">
+        <h1 className="text-lg font-bold text-[#0d1b3e]">Debts</h1>
+        <p className="text-xs text-gray-500">Track customer debts</p>
       </header>
 
-      {/* FILTER */}
-      <div className="flex gap-2">
-        {["today", "week", "month"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full shadow-sm ${
-              filter === f
-                ? "bg-black text-white shadow-md"
-                : "bg-gray-200"
-            }`}
-          >
-            {f.toUpperCase()}
-          </button>
-        ))}
+      {/* INPUT CARD */}
+      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
+
+        {/* CUSTOMER */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Customer
+          </label>
+          <input
+            type="text"
+            placeholder="Customer name"
+            value={form.name}
+            onChange={(e) =>
+              setForm({ ...form, name: e.target.value })
+            }
+            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+          />
+        </div>
+
+        {/* AMOUNT */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Amount (₦)
+          </label>
+          <input
+            type="number"
+            placeholder="e.g. 10000"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+          />
+        </div>
+
+        {/* DATE */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Date
+          </label>
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) =>
+              setForm({ ...form, date: e.target.value })
+            }
+            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+          />
+        </div>
+
+        {/* SAVE BUTTON */}
+        <button
+          onClick={handleSubmit}
+          disabled={!form.name || !form.amount}
+          className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+        >
+          Add Debt
+        </button>
       </div>
 
       {/* LIST */}
-      <div className="space-y-3">
-        {debts.map((d, i) => (
-          <div
-            key={i}
-            className="bg-white p-4 rounded-xl shadow-md border flex justify-between items-center"
-          >
-            <div>
-              <p className="font-semibold text-lg">{d.customer_name}</p>
-              <p className="text-sm text-gray-500">
-                Total: ₦{d.total_amount.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">
-                Paid: ₦{d.amount_paid.toLocaleString()}
+      <div className="bg-white p-3 rounded-xl shadow-sm">
+
+        <p className="text-xs text-gray-500 mb-2">
+          Recent Debts
+        </p>
+
+        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+
+          {debts.length === 0 && (
+            <p className="text-xs text-gray-400 text-center">
+              No debts yet
+            </p>
+          )}
+
+          {debts.map((item, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg"
+            >
+              <div>
+                <p className="text-sm font-medium text-[#2563eb]">
+                  {item.name}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {item.date}
+                </p>
+              </div>
+
+              <p className="text-sm font-semibold text-red-500">
+                ₦{item.amount.toLocaleString()}
               </p>
             </div>
+          ))}
 
-            <div className="text-right">
-              <p className="text-red-600 font-bold">
-                ₦{d.balance.toLocaleString()}
-              </p>
-
-              <button
-                onClick={() => recordPayment(d.customer_name)}
-                className="mt-2 bg-green-600 text-white px-3 py-1 rounded shadow-sm"
-              >
-                Record Payment
-              </button>
-            </div>
-          </div>
-        ))}
+        </div>
       </div>
+
     </div>
   )
 }

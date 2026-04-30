@@ -2,89 +2,127 @@
 
 import { useState, useEffect } from "react"
 
-type Transaction = {
-  id: string
-  type: "deposit" | "withdraw"
-  amount: number
-}
-
 export function Bank() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [amount, setAmount] = useState("")
+  const [records, setRecords] = useState<any[]>([])
 
-  // Load
+  const [form, setForm] = useState({
+    type: "deposit",
+    amount: "",
+    date: new Date().toISOString().split("T")[0],
+  })
+
   useEffect(() => {
-    const saved = localStorage.getItem("bank")
-    if (saved) setTransactions(JSON.parse(saved))
+    const saved = JSON.parse(localStorage.getItem("bank") || "[]")
+    setRecords(saved)
   }, [])
 
-  // Save
-  useEffect(() => {
-    localStorage.setItem("bank", JSON.stringify(transactions))
-  }, [transactions])
+  const handleSubmit = () => {
+    if (!form.amount) return
 
-  const addTransaction = (type: "deposit" | "withdraw") => {
-    if (!amount) return
-
-    const newTx: Transaction = {
-      id: Date.now().toString(),
-      type,
-      amount: Number(amount),
+    const newRecord = {
+      ...form,
+      amount: Number(form.amount),
     }
 
-    setTransactions([newTx, ...transactions])
-    setAmount("")
+    const updated = [newRecord, ...records]
+
+    setRecords(updated)
+    localStorage.setItem("bank", JSON.stringify(updated))
+
+    setForm({
+      ...form,
+      amount: "",
+    })
   }
 
-  const deposits = transactions
-    .filter(t => t.type === "deposit")
-    .reduce((s, t) => s + t.amount, 0)
-
-  const withdrawals = transactions
-    .filter(t => t.type === "withdraw")
-    .reduce((s, t) => s + t.amount, 0)
-
-  const balance = deposits - withdrawals
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-3 pb-20">
 
-      <div className="bg-white p-4 rounded-xl shadow-sm">
-        <p className="text-xs text-gray-500">Bank Balance</p>
-        <p className="text-lg font-bold">€{balance}</p>
+      <header className="pt-1">
+        <h1 className="text-lg font-bold text-[#0d1b3e]">Bank</h1>
+        <p className="text-xs text-gray-500">Manage deposits & withdrawals</p>
+      </header>
 
-        <p className="text-xs text-gray-500 mt-2">Deposited</p>
-        <p>€{deposits}</p>
+      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
-        <p className="text-xs text-gray-500">Withdrawn</p>
-        <p>€{withdrawals}</p>
-      </div>
+        <div className="grid grid-cols-2 gap-2">
 
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
-        <input
-          placeholder="Amount"
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-
-        <div className="flex gap-2">
           <button
-            onClick={() => addTransaction("deposit")}
-            className="flex-1 bg-green-600 text-white py-2 rounded"
+            onClick={() => setForm({ ...form, type: "deposit" })}
+            className={`h-11 rounded-lg text-sm font-medium ${
+              form.type === "deposit"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
           >
             Deposit
           </button>
 
           <button
-            onClick={() => addTransaction("withdraw")}
-            className="flex-1 bg-red-600 text-white py-2 rounded"
+            onClick={() => setForm({ ...form, type: "withdraw" })}
+            className={`h-11 rounded-lg text-sm font-medium ${
+              form.type === "withdraw"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
           >
             Withdraw
           </button>
+
+        </div>
+
+        <input
+          type="number"
+          placeholder="Amount (₦)"
+          value={form.amount}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+
+        <button
+          onClick={handleSubmit}
+          disabled={!form.amount}
+          className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold"
+        >
+          Save
+        </button>
+      </div>
+
+      <div className="bg-white p-3 rounded-xl shadow-sm">
+        <p className="text-xs text-gray-500 mb-2">Transactions</p>
+
+        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+
+          {records.map((item, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg"
+            >
+              <div>
+                <p className="text-sm font-medium text-[#2563eb]">
+                  {item.type}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {item.date}
+                </p>
+              </div>
+
+              <p className="text-sm font-semibold text-[#0d1b3e]">
+                ₦{item.amount.toLocaleString()}
+              </p>
+            </div>
+          ))}
+
         </div>
       </div>
+
     </div>
   )
 }

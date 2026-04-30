@@ -58,76 +58,74 @@ export function Expenses() {
     }, 2000)
   }
 
-  return (
-    <div className="space-y-6 p-4 pb-24">
-      <header className="pt-2">
-        <h1 className="text-2xl font-bold">Expenses</h1>
-        <p className="text-sm text-muted-foreground">
-          Record daily expenses
-        </p>
-      </header>
+return (
+  <div className="space-y-4 p-3 pb-20">
 
-      <Card className="border-0 shadow-sm">
-        <CardContent className="space-y-5 p-5">
-          <div className="space-y-2">
-            <Label>Date</Label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={(e) =>
-                setForm({ ...form, date: e.target.value })
-              }
-            />
-          </div>
+    {/* HEADER */}
+    <header className="pt-1">
+      <h1 className="text-lg font-bold text-[#0d1b3e]">Expenses</h1>
+      <p className="text-xs text-gray-500">Record daily expenses</p>
+    </header>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Input
-              placeholder="e.g. Fuel, Nylon, Labour"
-              value={form.category}
-              onChange={(e) =>
-                setForm({ ...form, category: e.target.value })
-              }
-            />
-          </div>
+    <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
-          <div className="space-y-2">
-            <Label>Amount (₦)</Label>
-            <Input
-              type="number"
-              value={form.amount}
-              onChange={(e) =>
-                setForm({ ...form, amount: e.target.value })
-              }
-            />
-          </div>
+      {/* DATE */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">Date</label>
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Input
-              placeholder="Optional"
-              value={form.notes}
-              onChange={(e) =>
-                setForm({ ...form, notes: e.target.value })
-              }
-            />
-          </div>
+      {/* CATEGORY */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">Category</label>
+        <input
+          type="text"
+          placeholder="e.g. Diesel, Salary"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
 
-          <Button onClick={handleSubmit} className="h-14 w-full">
-            {saved ? (
-              <>
-                <Check className="mr-2 h-5 w-5" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Wallet className="mr-2 h-5 w-5" />
-                Save Expense
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+      {/* AMOUNT */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">Amount (₦)</label>
+        <input
+          type="number"
+          placeholder="e.g. 5000"
+          value={form.amount}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
+
+      {/* NOTE */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">Note</label>
+        <input
+          type="text"
+          placeholder="Optional"
+          value={form.note}
+          onChange={(e) => setForm({ ...form, note: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
+
+      {/* SAVE */}
+      <button
+        onClick={handleSubmit}
+        disabled={!form.amount}
+        className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+      >
+        Save Expense
+      </button>
+
     </div>
-  )
+  </div>
+)
 }

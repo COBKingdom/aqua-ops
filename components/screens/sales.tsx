@@ -68,87 +68,102 @@ export function Sales() {
     }, 2000)
   }
 
-  return (
-    <div className="space-y-6 p-4 pb-24">
-      <header>
-        <h1 className="text-2xl font-bold">Sales</h1>
-        <p className="text-sm text-muted-foreground">
-          Record daily sales
-        </p>
-      </header>
+return (
+  <div className="space-y-4 p-3 pb-20">
 
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <div>
-            <Label>Date</Label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={(e) =>
-                setForm({ ...form, date: e.target.value })
-              }
-            />
-          </div>
+    {/* HEADER */}
+    <header className="pt-1">
+      <h1 className="text-lg font-bold text-[#0d1b3e]">Sales</h1>
+      <p className="text-xs text-gray-500">Record daily sales</p>
+    </header>
 
-          <div>
-            <Label>Customer Name</Label>
-            <Input
-              placeholder="Enter customer name"
-              value={form.customerName}
-              onChange={(e) =>
-                setForm({ ...form, customerName: e.target.value })
-              }
-            />
-          </div>
+    <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
-          <div>
-            <Label>Bags Sold</Label>
-            <Input
-              type="number"
-              value={form.bagsSold}
-              onChange={(e) =>
-                setForm({ ...form, bagsSold: e.target.value })
-              }
-            />
-          </div>
+      {/* DATE */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">
+          Date
+        </label>
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
 
-          <div>
-            <Label>Price per Bag (₦)</Label>
-            <Input
-              type="number"
-              value={form.pricePerBag}
-              onChange={(e) =>
-                setForm({ ...form, pricePerBag: e.target.value })
-              }
-            />
-          </div>
+      {/* PRODUCT TYPE */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">
+          Product Type
+        </label>
 
-          <div>
-            <Label>Amount Paid (₦)</Label>
-            <Input
-              type="number"
-              value={form.amountPaid}
-              onChange={(e) =>
-                setForm({ ...form, amountPaid: e.target.value })
-              }
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-2">
 
-          <Button onClick={handleSubmit} className="w-full h-14">
-            {saved ? (
-              <>
-                <Check className="mr-2 h-5 w-5" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Save Sale
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+          <button
+            onClick={() => setForm({ ...form, productType: "sachet" })}
+            className={`h-11 rounded-lg text-sm font-medium ${
+              form.productType === "sachet"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
+          >
+            Sachet
+          </button>
+
+          <button
+            onClick={() => setForm({ ...form, productType: "bottle" })}
+            className={`h-11 rounded-lg text-sm font-medium ${
+              form.productType === "bottle"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
+          >
+            Bottle
+          </button>
+
+        </div>
+      </div>
+
+      {/* QUANTITY */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">
+          Quantity Sold
+        </label>
+        <input
+          type="number"
+          placeholder="e.g. 50 bags"
+          value={form.quantity}
+          onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
+
+      {/* AMOUNT */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[#0d1b3e]">
+          Amount (₦)
+        </label>
+        <input
+          type="number"
+          placeholder="e.g. 25000"
+          value={form.amount}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+        />
+      </div>
+
+      {/* SAVE BUTTON */}
+      <button
+        onClick={handleSubmit}
+        disabled={!form.amount || !form.quantity}
+        className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+      >
+        Save Sale
+      </button>
+
     </div>
-  )
+
+  </div>
+)
 }

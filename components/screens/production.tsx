@@ -70,147 +70,113 @@ export function Production() {
     }, 2000)
   }
 
-  return (
-    <div className="space-y-6 p-4 pb-24">
-      <header className="pt-2">
-        <h1 className="text-2xl font-bold text-foreground">Production</h1>
-        <p className="text-sm text-muted-foreground">Record daily production</p>
-      </header>
+return (
+  <div className="space-y-3 p-3 pb-16">
 
-      <Card className="border-0 bg-card shadow-sm">
-        <CardContent className="space-y-5 p-5">
-          {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="date" className="text-base font-medium">
-              Date
-            </Label>
-            <Input
-              id="date"
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="h-14 text-lg"
-            />
+    {/* HEADER */}
+    <header className="pt-1">
+      <h1 className="text-lg font-bold text-[#0d1b3e]">Production</h1>
+      <p className="text-xs text-gray-500">Record daily production</p>
+    </header>
+
+    <Card className="border border-gray-100 shadow-sm">
+      <CardContent className="space-y-3 p-4">
+
+        {/* DATE */}
+        <div className="space-y-1">
+          <Label htmlFor="date" className="text-sm font-medium text-[#0d1b3e]">
+            Date
+          </Label>
+          <Input
+            id="date"
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            className="h-11 text-sm"
+          />
+        </div>
+
+        {/* PRODUCT TYPE */}
+        <div className="space-y-1">
+          <Label className="text-sm font-medium text-[#0d1b3e]">
+            Product Type
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, productType: "sachet" })}
+              className={`h-11 rounded-lg text-sm font-medium transition ${
+                form.productType === "sachet"
+                  ? "bg-[#2563eb] text-white"
+                  : "bg-blue-50 text-[#2563eb]"
+              }`}
+            >
+              Sachet
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, productType: "bottle" })}
+              className={`h-11 rounded-lg text-sm font-medium transition ${
+                form.productType === "bottle"
+                  ? "bg-[#2563eb] text-white"
+                  : "bg-blue-50 text-[#2563eb]"
+              }`}
+            >
+              Bottle
+            </button>
+
           </div>
+        </div>
 
-          {/* Product Type */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Product Type</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={form.productType === "sachet" ? "default" : "outline"}
-                className={`h-14 text-base ${
-                  form.productType === "sachet"
-                    ? "bg-primary text-primary-foreground"
-                    : "border-2 text-foreground"
-                }`}
-                onClick={() => setForm({ ...form, productType: "sachet" })}
-              >
-                Sachet Water
-              </Button>
-              <Button
-                type="button"
-                variant={form.productType === "bottle" ? "default" : "outline"}
-                className={`h-14 text-base ${
-                  form.productType === "bottle"
-                    ? "bg-primary text-primary-foreground"
-                    : "border-2 text-foreground"
-                }`}
-                onClick={() => setForm({ ...form, productType: "bottle" })}
-              >
-                Bottled Water
-              </Button>
-            </div>
-          </div>
+        {/* BAGS */}
+        <div className="space-y-1">
+          <Label htmlFor="bags" className="text-sm font-medium text-[#0d1b3e]">
+            Bags Produced
+          </Label>
+          <Input
+            id="bags"
+            type="number"
+            inputMode="numeric"
+            placeholder="e.g. 120"
+            value={form.bagsProduced}
+            onChange={(e) => setForm({ ...form, bagsProduced: e.target.value })}
+            className="h-11 text-sm"
+          />
+        </div>
 
-          {/* Bags Produced */}
-          <div className="space-y-2">
-            <Label htmlFor="bags" className="text-base font-medium">
-              Number of Bags Produced
-            </Label>
-            <Input
-              id="bags"
-              type="number"
-              inputMode="numeric"
-              placeholder="Enter number of bags"
-              value={form.bagsProduced}
-              onChange={(e) => setForm({ ...form, bagsProduced: e.target.value })}
-              className="h-14 text-lg"
-            />
-          </div>
+        {/* PIECES */}
+        <div className="space-y-1">
+          <Label htmlFor="pieces" className="text-sm font-medium text-[#0d1b3e]">
+            Pieces per Bag
+          </Label>
+          <Input
+            id="pieces"
+            type="number"
+            inputMode="numeric"
+            placeholder="20"
+            value={form.piecesPerBag}
+            onChange={(e) => setForm({ ...form, piecesPerBag: e.target.value })}
+            className="h-11 text-sm"
+          />
+        </div>
 
-          {/* Pieces per Bag */}
-          <div className="space-y-2">
-            <Label htmlFor="pieces" className="text-base font-medium">
-              Pieces per Bag
-            </Label>
-            <Input
-              id="pieces"
-              type="number"
-              inputMode="numeric"
-              placeholder="20"
-              value={form.piecesPerBag}
-              onChange={(e) => setForm({ ...form, piecesPerBag: e.target.value })}
-              className="h-14 text-lg"
-            />
-          </div>
+        {/* SAVE BUTTON (MOVED UP + COMPACT) */}
+        <button
+          onClick={handleSubmit}
+          disabled={!form.bagsProduced || !form.piecesPerBag || saved}
+          className={`w-full h-11 rounded-lg text-sm font-semibold transition active:scale-[0.97] ${
+            saved
+              ? "bg-green-600 text-white"
+              : "bg-[#2563eb] text-white"
+          }`}
+        >
+          {saved ? "Saved" : "Save Production"}
+        </button>
 
-          {/* Shift */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Shift</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={form.shift === "morning" ? "default" : "outline"}
-                className={`h-14 text-base ${
-                  form.shift === "morning"
-                    ? "bg-primary text-primary-foreground"
-                    : "border-2 text-foreground"
-                }`}
-                onClick={() => setForm({ ...form, shift: "morning" })}
-              >
-                Morning
-              </Button>
-              <Button
-                type="button"
-                variant={form.shift === "evening" ? "default" : "outline"}
-                className={`h-14 text-base ${
-                  form.shift === "evening"
-                    ? "bg-primary text-primary-foreground"
-                    : "border-2 text-foreground"
-                }`}
-                onClick={() => setForm({ ...form, shift: "evening" })}
-              >
-                Evening
-              </Button>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={!form.bagsProduced || !form.piecesPerBag || saved}
-            className={`h-16 w-full text-lg font-semibold ${
-              saved
-                ? "bg-success text-success-foreground hover:bg-success"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            }`}
-          >
-            {saved ? (
-              <>
-                <Check className="mr-2 h-6 w-6" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Package className="mr-2 h-6 w-6" />
-                Save Production
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
+      </CardContent>
+    </Card>
+  </div>
+)
 }
