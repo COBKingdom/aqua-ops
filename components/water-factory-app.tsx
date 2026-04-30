@@ -38,7 +38,7 @@ export default function WaterFactoryApp() {
 
   // ✅ SCREEN RENDERER
   const renderScreen = () => {
-    if (activeTab === "dashboard") return <Dashboard />
+    if (activeTab === "dashboard") return <Dashboard setActiveTab={setActiveTab} />
     if (activeTab === "production") return <Production />
     if (activeTab === "sales") return <Sales />
     if (activeTab === "expenses") return <Expenses />
