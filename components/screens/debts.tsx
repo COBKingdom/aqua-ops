@@ -1,145 +1,186 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
+import { formatCurrency } from "@/lib/format"
+import { AlertCircle } from "lucide-react"
 
 export function Debts() {
   const [debts, setDebts] = useState<any[]>([])
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
+  const [payment, setPayment] = useState("")
 
-  const [form, setForm] = useState({
-    name: "",
-    amount: "",
-    date: new Date().toISOString().split("T")[0],
-  })
+  const loadDebts = async () => {
+    const factoryId = getFactoryId()
+    if (!factoryId) return
+
+    const { data } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .gt("balance", 0)
+
+    if (!data) return
+
+    const grouped: any = {}
+
+    data.forEach((sale) => {
+      const name = sale.customer_name || "Unknown"
+
+      if (!grouped[name]) grouped[name] = 0
+
+      grouped[name] += Number(sale.balance || 0)
+    })
+
+    const result = Object.keys(grouped).map((name) => ({
+      customer: name,
+      amount: grouped[name],
+    }))
+
+    setDebts(result)
+  }
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("debts") || "[]")
-    setDebts(saved)
+    loadDebts()
   }, [])
 
-  const handleSubmit = () => {
-    if (!form.name || !form.amount) return
+  // 💰 COLLECT PAYMENT
+  const handleCollect = async () => {
+    const factoryId = getFactoryId()
+    if (!factoryId || !selectedCustomer || !payment) return
 
-    const newDebt = {
-      ...form,
-      amount: Number(form.amount),
+    let remaining = Number(payment)
+
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .eq("customer_name", selectedCustomer)
+      .gt("balance", 0)
+      .order("created_at", { ascending: true })
+
+    if (!sales) return
+
+    for (const sale of sales) {
+      if (remaining <= 0) break
+
+      const balance = Number(sale.balance)
+      const pay = Math.min(balance, remaining)
+
+      const newPaid = Number(sale.amount_paid) + pay
+      const newBalance = balance - pay
+
+      await supabase
+        .from("sales")
+        .update({
+          amount_paid: newPaid,
+          balance: newBalance,
+        })
+        .eq("id", sale.id)
+
+      remaining -= pay
     }
 
-    const updated = [newDebt, ...debts]
-
-    setDebts(updated)
-    localStorage.setItem("debts", JSON.stringify(updated))
-
-    setForm({
-      name: "",
-      amount: "",
-      date: form.date,
-    })
+    setPayment("")
+    setSelectedCustomer(null)
+    loadDebts()
   }
+
+  const totalDebt = debts.reduce((s, d) => s + d.amount, 0)
 
   return (
     <div className="space-y-4 p-3 pb-20">
 
       {/* HEADER */}
-      <header className="pt-1">
+      <div>
         <h1 className="text-lg font-bold text-[#0d1b3e]">Debts</h1>
-        <p className="text-xs text-gray-500">Track customer debts</p>
-      </header>
+        <p className="text-xs text-gray-500">
+          Track money owed by customers
+        </p>
+      </div>
 
-      {/* INPUT CARD */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-
-        {/* CUSTOMER */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">
-            Customer
-          </label>
-          <input
-            type="text"
-            placeholder="Customer name"
-            value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
-            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-          />
-        </div>
-
-        {/* AMOUNT */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">
-            Amount (₦)
-          </label>
-          <input
-            type="number"
-            placeholder="e.g. 10000"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-          />
-        </div>
-
-        {/* DATE */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">
-            Date
-          </label>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) =>
-              setForm({ ...form, date: e.target.value })
-            }
-            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-          />
-        </div>
-
-        {/* SAVE BUTTON */}
-        <button
-          onClick={handleSubmit}
-          disabled={!form.name || !form.amount}
-          className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
-        >
-          Add Debt
-        </button>
+      {/* TOTAL */}
+      <div className="bg-[#0d1b3e] text-white p-5 rounded-xl shadow-md">
+        <p className="text-xs opacity-80">Total Outstanding Debt</p>
+        <p className="text-2xl font-bold mt-1">
+          {formatCurrency(totalDebt)}
+        </p>
       </div>
 
       {/* LIST */}
-      <div className="bg-white p-3 rounded-xl shadow-sm">
+      <div className="bg-white p-4 rounded-xl shadow-sm">
 
-        <p className="text-xs text-gray-500 mb-2">
-          Recent Debts
-        </p>
-
-        <div className="space-y-2 max-h-[300px] overflow-y-auto">
-
-          {debts.length === 0 && (
-            <p className="text-xs text-gray-400 text-center">
-              No debts yet
-            </p>
-          )}
-
-          {debts.map((item, index) => (
+        {debts.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No outstanding debts 🎉
+          </p>
+        ) : (
+          debts.map((d, index) => (
             <div
               key={index}
-              className="flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg"
+              className="py-3 border-b last:border-none space-y-2"
             >
-              <div>
-                <p className="text-sm font-medium text-[#2563eb]">
-                  {item.name}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {item.date}
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    {d.customer}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Outstanding
+                  </p>
+                </div>
+
+                <p className="text-red-600 font-semibold">
+                  {formatCurrency(d.amount)}
                 </p>
               </div>
 
-              <p className="text-sm font-semibold text-red-500">
-                ₦{item.amount.toLocaleString()}
-              </p>
-            </div>
-          ))}
+              {/* COLLECT BUTTON */}
+              <button
+                onClick={() => setSelectedCustomer(d.customer)}
+                className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg"
+              >
+                Collect Payment
+              </button>
 
+              {/* INPUT BOX */}
+              {selectedCustomer === d.customer && (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={payment}
+                    onChange={(e) => setPayment(e.target.value)}
+                    className="flex-1 h-9 border rounded px-2 text-sm"
+                  />
+                  <button
+                    onClick={handleCollect}
+                    className="bg-green-600 text-white px-3 rounded text-sm"
+                  >
+                    OK
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ALERT CARD */}
+      <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl border border-red-200 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="bg-red-500 text-white p-2 rounded-lg">
+            <AlertCircle size={16} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-red-700">
+              Cash Flow Alert
+            </p>
+            <p className="text-sm text-gray-700 mt-1">
+              Follow up on unpaid balances to improve your cash flow.
+            </p>
+          </div>
         </div>
       </div>
 

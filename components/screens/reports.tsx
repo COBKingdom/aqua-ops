@@ -1,194 +1,225 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
 import { formatCurrency } from "@/lib/format"
 
-type Filter = "day" | "week" | "month"
-
 export function Reports() {
-  const [sales, setSales] = useState<any[]>([])
-  const [expenses, setExpenses] = useState<any[]>([])
-  const [production, setProduction] = useState<any[]>([])
-  const [debts, setDebts] = useState<any[]>([])
+  const [data, setData] = useState<any>({
+    sales: 0,
+    expenses: 0,
+    production: 0,
+    debt: 0,
+  })
 
-  const [filter, setFilter] = useState<Filter>("day")
+  const [period, setPeriod] = useState("today")
 
-  useEffect(() => {
-    setSales(JSON.parse(localStorage.getItem("sales") || "[]"))
-    setExpenses(JSON.parse(localStorage.getItem("expenses") || "[]"))
-    setProduction(JSON.parse(localStorage.getItem("production") || "[]"))
-    setDebts(JSON.parse(localStorage.getItem("debts") || "[]"))
-  }, [])
+  const getDateFilter = () => {
+    const now = new Date()
 
-  const today = new Date()
+    if (period === "today") return now.toISOString().split("T")[0]
 
-  const isInRange = (dateStr: string) => {
-    if (!dateStr) return false
+    if (period === "week")
+      return new Date(now.getTime() - 7 * 86400000)
+        .toISOString()
+        .split("T")[0]
 
-    const date = new Date(dateStr)
-
-    if (filter === "day") {
-      return date.toDateString() === today.toDateString()
-    }
-
-    if (filter === "week") {
-      const start = new Date()
-      start.setDate(today.getDate() - 7)
-      return date >= start && date <= today
-    }
-
-    if (filter === "month") {
-      return (
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear()
-      )
-    }
-
-    return true
+    if (period === "month")
+      return new Date(now.getTime() - 30 * 86400000)
+        .toISOString()
+        .split("T")[0]
   }
 
-  const filteredSales = sales.filter((s) => isInRange(s.date))
-  const filteredExpenses = expenses.filter((e) => isInRange(e.date))
-  const filteredProduction = production.filter((p) => isInRange(p.date))
-  const filteredDebts = debts.filter((d) => isInRange(d.date))
+  const loadReport = async () => {
+    const factoryId = getFactoryId()
+    if (!factoryId) return
 
-  const totalSales = filteredSales.reduce((s, i) => s + (i.amount || 0), 0)
-  const totalExpenses = filteredExpenses.reduce((s, i) => s + (i.amount || 0), 0)
-  const totalProduction = filteredProduction.reduce((s, i) => s + (i.quantity || 0), 0)
-  const totalDebts = filteredDebts.reduce((s, i) => s + (i.amount || 0), 0)
+    const dateFilter = getDateFilter()
 
-  const profit = totalSales - totalExpenses
-  const netCash = totalSales - totalExpenses
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .gte("date", dateFilter)
 
-  const label =
-    filter === "day"
-      ? "Today"
-      : filter === "week"
-      ? "This Week"
-      : "This Month"
+    const { data: expenses } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .gte("date", dateFilter)
 
-  // 📤 REPORT TEXT
-  const reportText = `
-${label} Business Report
+    const { data: production } = await supabase
+      .from("production")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .gte("date", dateFilter)
 
-Sales: ${formatCurrency(totalSales)}
-Expenses: ${formatCurrency(totalExpenses)}
-Production: ${totalProduction} bags
-Debts: ${formatCurrency(totalDebts)}
+    const { data: debts } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("factory_id", factoryId)
+      .gt("balance", 0)
 
-Profit: ${formatCurrency(profit)}
-Net Cash: ${formatCurrency(netCash)}
-`
+    const totalSales =
+      sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
+
+    const totalExpenses =
+      expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+
+    const totalProduction =
+      production?.reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+
+    const totalDebt =
+      debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+
+    setData({
+      sales: totalSales,
+      expenses: totalExpenses,
+      production: totalProduction,
+      debt: totalDebt,
+    })
+  }
+
+  useEffect(() => {
+    loadReport()
+  }, [period])
+
+  const profit = data.sales - data.expenses
+
+  // 🔥 PREMIUM REPORT TEXT
+  const generateReportText = () => {
+    return `📊 BUSINESS REPORT — ${period.toUpperCase()}
+
+━━━━━━━━━━━━━━━━━━━
+
+💰 Revenue
+Sales: ${formatCurrency(data.sales)}
+
+💸 Expenses
+Total: ${formatCurrency(data.expenses)}
+
+📦 Operations
+Production: ${data.production} bags
+
+⚠️ Risk
+Outstanding Debt: ${formatCurrency(data.debt)}
+
+━━━━━━━━━━━━━━━━━━━
+
+📈 Net Result: ${formatCurrency(profit)}
+
+━━━━━━━━━━━━━━━━━━━
+
+Generated via AquaOps`
+  }
+
+  const handleWhatsApp = () => {
+    const text = encodeURIComponent(generateReportText())
+    window.open(`https://wa.me/?text=${text}`, "_blank")
+  }
+
+  const handleEmail = () => {
+    const subject = encodeURIComponent("Business Report")
+    const body = encodeURIComponent(generateReportText())
+    window.location.href = `mailto:?subject=${subject}&body=${body}`
+  }
 
   return (
     <div className="space-y-4 p-3 pb-20">
 
       {/* HEADER */}
-      <header className="pt-1">
+      <div>
         <h1 className="text-lg font-bold text-[#0d1b3e]">Reports</h1>
-        <p className="text-xs text-gray-500">{label} Overview</p>
-      </header>
-
-      {/* FILTERS */}
-      <div className="grid grid-cols-3 gap-2">
-
-        <button
-          onClick={() => setFilter("day")}
-          className={`h-10 rounded-lg text-sm ${
-            filter === "day"
-              ? "bg-[#2563eb] text-white"
-              : "bg-blue-50 text-[#2563eb]"
-          }`}
-        >
-          Day
-        </button>
-
-        <button
-          onClick={() => setFilter("week")}
-          className={`h-10 rounded-lg text-sm ${
-            filter === "week"
-              ? "bg-[#2563eb] text-white"
-              : "bg-blue-50 text-[#2563eb]"
-          }`}
-        >
-          Week
-        </button>
-
-        <button
-          onClick={() => setFilter("month")}
-          className={`h-10 rounded-lg text-sm ${
-            filter === "month"
-              ? "bg-[#2563eb] text-white"
-              : "bg-blue-50 text-[#2563eb]"
-          }`}
-        >
-          Month
-        </button>
-
+        <p className="text-xs text-gray-500">
+          Professional business summary
+        </p>
       </div>
 
-      {/* SUMMARY */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-
-        <div className="flex justify-between text-sm">
-          <span>Sales</span>
-          <span>{formatCurrency(totalSales)}</span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span>Expenses</span>
-          <span>{formatCurrency(totalExpenses)}</span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span>Production</span>
-          <span>{totalProduction} bags</span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span>Debts</span>
-          <span className="text-red-500">
-            {formatCurrency(totalDebts)}
-          </span>
-        </div>
-
-        <div className="border-t pt-2 flex justify-between text-sm font-semibold">
-          <span>Profit</span>
-          <span className={profit >= 0 ? "text-green-600" : "text-red-500"}>
-            {formatCurrency(profit)}
-          </span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span>Net Cash</span>
-          <span>{formatCurrency(netCash)}</span>
-        </div>
-
+      {/* FILTER */}
+      <div className="flex gap-2">
+        {[
+          { key: "today", label: "Today" },
+          { key: "week", label: "Week" },
+          { key: "month", label: "Month" },
+        ].map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-3 py-1 rounded-lg text-sm ${
+              period === p.key
+                ? "bg-[#2563eb] text-white"
+                : "bg-gray-100"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="grid grid-cols-2 gap-2">
+{/* 🔥 HERO CARD */}
+<div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
+  <p className="text-xs opacity-80">Net Result</p>
 
+  <p className="text-3xl font-bold mt-2">
+    {formatCurrency(profit)}
+  </p>
+
+  <p className="text-xs mt-1 opacity-90">
+    {profit > 0 && "Profit — Business is growing"}
+    {profit < 0 && "Loss — Business is declining"}
+    {profit === 0 && "Break-even"}
+  </p>
+</div>
+
+{/* GRID SUMMARY */}
+<div className="grid grid-cols-2 gap-3">
+
+  <div className="bg-white p-3 rounded-xl shadow-sm">
+    <p className="text-sm font-semibold text-[#0d1b3e]">Sales</p>
+    <p className="text-lg font-bold mt-1">
+      {formatCurrency(data.sales)}
+    </p>
+  </div>
+
+  <div className="bg-white p-3 rounded-xl shadow-sm">
+    <p className="text-sm font-semibold text-[#0d1b3e]">Expenses</p>
+    <p className="text-lg font-bold mt-1">
+      {formatCurrency(data.expenses)}
+    </p>
+  </div>
+
+  <div className="bg-white p-3 rounded-xl shadow-sm">
+    <p className="text-sm font-semibold text-[#0d1b3e]">Production</p>
+    <p className="text-lg font-bold mt-1">
+      {data.production} bags
+    </p>
+  </div>
+
+  <div className="bg-white p-3 rounded-xl shadow-sm">
+    <p className="text-sm font-semibold text-[#0d1b3e]">Debt</p>
+    <p className="text-lg font-bold text-red-600 mt-1">
+      {formatCurrency(data.debt)}
+    </p>
+  </div>
+
+</div>
+
+      {/* SHARE BUTTONS */}
+      <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => {
-            const url = `https://wa.me/?text=${encodeURIComponent(reportText)}`
-            window.open(url, "_blank")
-          }}
-          className="h-11 bg-green-500 text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+          onClick={handleWhatsApp}
+          className="w-full h-11 bg-green-600 text-white rounded-lg font-semibold"
         >
-          WhatsApp
+          Share WhatsApp
         </button>
 
         <button
-          onClick={() => {
-            const url = `mailto:?subject=Business Report&body=${encodeURIComponent(reportText)}`
-            window.location.href = url
-          }}
-          className="h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+          onClick={handleEmail}
+          className="w-full h-11 bg-gray-800 text-white rounded-lg font-semibold"
         >
-          Email
+          Share Email
         </button>
-
       </div>
 
     </div>

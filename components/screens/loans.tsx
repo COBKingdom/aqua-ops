@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 
 export function Loans() {
   const [loans, setLoans] = useState<any[]>([])
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [repayment, setRepayment] = useState("")
 
   const [form, setForm] = useState({
     source: "",
@@ -22,6 +24,7 @@ export function Loans() {
     const newLoan = {
       ...form,
       amount: Number(form.amount),
+      amount_paid: 0,
     }
 
     const updated = [newLoan, ...loans]
@@ -36,6 +39,30 @@ export function Loans() {
     })
   }
 
+  const handleRepayment = () => {
+    if (selectedIndex === null || !repayment) return
+
+    const updated = [...loans]
+
+    const loan = updated[selectedIndex]
+
+    const pay = Number(repayment)
+    const totalPaid = Number(loan.amount_paid || 0) + pay
+
+    if (totalPaid > loan.amount) {
+      alert("Repayment exceeds loan amount")
+      return
+    }
+
+    loan.amount_paid = totalPaid
+
+    setLoans(updated)
+    localStorage.setItem("loans", JSON.stringify(updated))
+
+    setRepayment("")
+    setSelectedIndex(null)
+  }
+
   return (
     <div className="space-y-4 p-3 pb-20">
 
@@ -44,6 +71,7 @@ export function Loans() {
         <p className="text-xs text-gray-500">Track business loans</p>
       </header>
 
+      {/* ADD LOAN */}
       <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
         <div className="space-y-1">
@@ -87,6 +115,7 @@ export function Loans() {
         </button>
       </div>
 
+      {/* LOANS LIST */}
       <div className="bg-white p-3 rounded-xl shadow-sm">
         <p className="text-xs text-gray-500 mb-2">Recent Loans</p>
 
@@ -98,25 +127,64 @@ export function Loans() {
             </p>
           )}
 
-          {loans.map((item, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg"
-            >
-              <div>
-                <p className="text-sm font-medium text-[#2563eb]">
-                  {item.source}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {item.date}
-                </p>
-              </div>
+          {loans.map((item, index) => {
+            const balance =
+              item.amount - (item.amount_paid || 0)
 
-              <p className="text-sm font-semibold text-[#0d1b3e]">
-                ₦{item.amount.toLocaleString()}
-              </p>
-            </div>
-          ))}
+            return (
+              <div
+                key={index}
+                className="bg-blue-50 px-3 py-2 rounded-lg space-y-2"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium text-[#2563eb]">
+                      {item.source}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {item.date}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-[#0d1b3e]">
+                      ₦{item.amount.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-red-500">
+                      Balance: ₦{balance.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* REPAY BUTTON */}
+                <button
+                  onClick={() => setSelectedIndex(index)}
+                  className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg"
+                >
+                  Repay
+                </button>
+
+                {/* REPAYMENT INPUT */}
+                {selectedIndex === index && (
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={repayment}
+                      onChange={(e) => setRepayment(e.target.value)}
+                      className="flex-1 h-9 border rounded px-2 text-sm"
+                    />
+                    <button
+                      onClick={handleRepayment}
+                      className="bg-green-600 text-white px-3 rounded text-sm"
+                    >
+                      OK
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
         </div>
       </div>
