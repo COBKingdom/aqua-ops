@@ -22,10 +22,8 @@ export function Dashboard({
   const [factoryName, setFactoryName] = useState("")
   const [isPremium, setIsPremium] = useState(false)
 
-  // 🔥 FILTER
   const [period, setPeriod] = useState("today")
 
-  // 🔥 DATA (MATCH REPORTS)
   const [data, setData] = useState({
     sales: 0,
     expenses: 0,
@@ -49,7 +47,7 @@ export function Dashboard({
         .split("T")[0]
   }
 
-  // 🔥 LOAD DATA (SAME AS REPORTS)
+  // 🔥 FIXED: LOAD DATA
   useEffect(() => {
     const loadDashboard = async () => {
       const factoryId = getFactoryId()
@@ -112,7 +110,7 @@ export function Dashboard({
     loadDashboard()
   }, [period])
 
-  // 🔥 PREMIUM CHECK
+  // 🔥 FIXED: PREMIUM CHECK
   useEffect(() => {
     const checkPremium = async () => {
       const result = await isPremiumUser()
@@ -135,33 +133,24 @@ export function Dashboard({
   return (
     <div className="space-y-5 p-3 pb-20">
 
-      {/* 🔥 FILTER BUTTONS */}
+      {/* FILTER */}
       <div className="flex gap-2 flex-wrap">
-        {[
-          { key: "today", label: "Today" },
-          { key: "week", label: "Week" },
-          { key: "month", label: "Month" },
-        ].map((p) => (
+        {["today", "week", "month"].map((p) => (
           <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
+            key={p}
+            onClick={() => setPeriod(p)}
             className={`px-3 py-1 rounded-lg text-sm ${
-              period === p.key
-                ? "bg-[#2563eb] text-white"
-                : "bg-gray-100"
+              period === p ? "bg-[#2563eb] text-white" : "bg-gray-100"
             }`}
           >
-            {p.label}
+            {p.charAt(0).toUpperCase() + p.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* 🔥 PRIMARY CARD */}
+      {/* PRIMARY CARD */}
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
-
-        <p className="text-xs opacity-70 tracking-wide">
-          {factoryName || "Factory"} Overview
-        </p>
+        <p className="text-xs opacity-70">{factoryName || "Factory"} Overview</p>
 
         <p className="text-3xl font-bold mt-3">
           {formatCurrency(profit)}
@@ -177,142 +166,71 @@ export function Dashboard({
 
           <div>
             <p className="opacity-70">Sales</p>
-            <p className="font-semibold text-base">
-              {formatCurrency(data.sales)}
-            </p>
+            <p className="font-semibold">{formatCurrency(data.sales)}</p>
           </div>
 
           <div>
             <p className="opacity-70">Expenses</p>
-            <p className="font-semibold text-base">
-              {formatCurrency(data.expenses)}
-            </p>
+            <p className="font-semibold">{formatCurrency(data.expenses)}</p>
           </div>
 
           <div>
             <p className="opacity-70">Debt</p>
-            <p className="font-semibold text-base">
-              {formatCurrency(data.debt)}
+            <p className="font-semibold">{formatCurrency(data.debt)}</p>
+          </div>
+
+          <div>
+            <p className="opacity-70">Net Cash Profit</p>
+            <p className={netCashProfit < 0 ? "text-red-400" : "text-green-300"}>
+              {formatCurrency(netCashProfit)}
             </p>
           </div>
 
-<div>
-  <p className="opacity-70">Net Cash Profit</p>
-  <p className={`font-semibold text-base ${
-    netCashProfit < 0 ? "text-red-400" : "text-green-300"
-  }`}>
-    {formatCurrency(netCashProfit)}
-  </p>
-  <p className="text-[10px] opacity-70">
-    {netCashProfit < 0 ? "Loss" : "Cash Profit"}
-  </p>
-</div>
-
         </div>
       </div>
 
-      {/* ⚡ QUICK ACTIONS */}
-      <div>
-        <p className="text-sm font-semibold text-gray-700 mb-3">
-          Quick Actions
-        </p>
+      {/* QUICK ACTIONS */}
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => setActiveTab("expenses")} className="bg-blue-600 text-white p-3 rounded-xl flex gap-2">
+          <Wallet size={16}/> Add Expense
+        </button>
 
-        <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => setActiveTab("sales")} className="bg-blue-50 p-3 rounded-xl flex gap-2">
+          <ShoppingCart size={16}/> Add Sale
+        </button>
 
-          <button
-            onClick={() => setActiveTab("expenses")}
-            className="flex items-center gap-3 bg-[#2563eb] text-white py-3 px-3 rounded-xl font-medium shadow-sm"
-          >
-            <Wallet size={16} />
-            Add Expense
-          </button>
+        <button onClick={() => setActiveTab("production")} className="bg-blue-50 p-3 rounded-xl flex gap-2">
+          <Factory size={16}/> Production
+        </button>
 
-          <button
-            onClick={() => setActiveTab("sales")}
-            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
-          >
-            <ShoppingCart size={16} />
-            Add Sale
-          </button>
+        <button onClick={() => setActiveTab("reports")} className="bg-orange-50 p-3 rounded-xl flex gap-2">
+          <BarChart3 size={16}/> Reports
+        </button>
+      </div>
 
-          <button
-            onClick={() => setActiveTab("production")}
-            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
-          >
-            <Factory size={16} />
-            Production
-          </button>
+      {/* SNAPSHOT */}
+      <div className="bg-white p-4 rounded-xl shadow-sm space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span>Profit</span>
+          <span>{formatCurrency(profit)}</span>
+        </div>
 
-          <button
-            onClick={() => setActiveTab("reports")}
-            className="flex items-center gap-3 bg-orange-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
-          >
-            <BarChart3 size={16} />
-            Reports
-          </button>
+        <div className="flex justify-between">
+          <span>Debt</span>
+          <span className="text-red-600">{formatCurrency(data.debt)}</span>
+        </div>
 
+        <div className="flex justify-between">
+          <span>Production</span>
+          <span>{data.production} bags</span>
         </div>
       </div>
 
-      {/* 📊 PERFORMANCE SNAPSHOT */}
-<div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-  <p className="text-sm font-semibold text-gray-700">
-    Performance Snapshot
-  </p>
-
-  <div className="space-y-2 text-sm">
-
-    <div className="flex justify-between">
-      <span>Profit</span>
-      <span className="font-medium">
-        {formatCurrency(profit)}
-      </span>
-    </div>
-
-    <div className="flex justify-between">
-      <span>Debt Level</span>
-      <span className="text-red-600 font-medium">
-        {formatCurrency(data.debt)}
-      </span>
-    </div>
-
-    <div className="flex justify-between">
-      <span>Production</span>
-      <span className="font-medium">
-        {data.production} bags
-      </span>
-    </div>
-
-    <div className="flex justify-between">
-      <span>Efficiency</span>
-      <span className="font-medium">
-        {data.sales > 0
-          ? `${Math.round((1 - data.expenses / data.sales) * 100)}%`
-          : "0%"}
-      </span>
-    </div>
-
-  </div>
-</div>
-
-      {/* 🧠 INTELLIGENCE */}
+      {/* INSIGHTS */}
       {isPremium && (
         <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
-          <p className="text-sm font-semibold text-gray-700">
-            Business Insights
-          </p>
-
-          {alerts.map((a, i) => (
-            <div key={i} className="text-sm text-red-600">
-              {a}
-            </div>
-          ))}
-
-          {insights.map((i, index) => (
-            <div key={index} className="text-sm text-green-600">
-              {i}
-            </div>
-          ))}
+          {alerts.map((a, i) => <div key={i} className="text-red-600">{a}</div>)}
+          {insights.map((i, index) => <div key={index} className="text-green-600">{i}</div>)}
         </div>
       )}
 

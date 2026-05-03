@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { setFactoryName } from "@/lib/factory"
 
 export default function OnboardingPage() {
   const [tempName, setTempName] = useState("")
@@ -19,28 +20,58 @@ export default function OnboardingPage() {
 
     setLoading(true)
 
-    // 🔥 SAVE FACTORY TO SUPABASE
-    const { data, error } = await supabase
-      .from("factories")
-      .insert([{ name }])
-      .select()
-      .single()
+    try {
+      let factoryId = ""
 
-    if (error) {
-      console.error(error)
-      alert("Error creating factory. Please try again.")
+      // 🔍 CHECK IF FACTORY EXISTS (SAFE MATCH)
+      const { data: existing, error: fetchError } = await supabase
+        .from("factories")
+        .select("id, name")
+        .ilike("name", name)
+        .limit(1)
+
+      if (fetchError) {
+        console.error("Fetch error:", fetchError)
+        alert("Error checking factory")
+        setLoading(false)
+        return
+      }
+
+      if (existing && existing.length > 0) {
+        // ✅ REUSE EXISTING FACTORY
+        factoryId = existing[0].id
+      } else {
+        // 🆕 CREATE NEW FACTORY
+        const { data: newFactory, error: insertError } = await supabase
+          .from("factories")
+          .insert([{ name }])
+          .select("id")
+          .single()
+
+        if (insertError || !newFactory) {
+          console.error("Insert error:", insertError)
+          alert("Error creating factory")
+          setLoading(false)
+          return
+        }
+
+        factoryId = newFactory.id
+      }
+
+      // 💾 SAVE LOCALLY
+      localStorage.setItem("factoryId", factoryId)
+      localStorage.setItem("factoryName", name)
+
+      setFactoryName(name)
+
+      router.push("/aquaops")
+
+    } catch (err) {
+      console.error("Unexpected error:", err)
+      alert("Unexpected error")
+    } finally {
       setLoading(false)
-      return
     }
-
-    // ✅ STORE LOCALLY
-    localStorage.setItem("factoryId", data.id)
-    localStorage.setItem("factoryName", data.name)
-
-    setLoading(false)
-
-    // 🚀 GO TO APP
-    router.push("/aquaops")
   }
 
   return (
@@ -85,7 +116,7 @@ export default function OnboardingPage() {
                 : "bg-gray-300 text-gray-500"
             }`}
           >
-            {loading ? "Creating..." : "Continue →"}
+            {loading ? "Please wait..." : "Continue →"}
           </button>
         </form>
 
