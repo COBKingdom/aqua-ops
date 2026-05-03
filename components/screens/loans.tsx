@@ -74,27 +74,27 @@ export function Loans() {
       {/* ADD LOAN */}
       <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">Source</label>
-          <input
-            type="text"
-            placeholder="e.g. MD, Friend"
-            value={form.source}
-            onChange={(e) => setForm({ ...form, source: e.target.value })}
-            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-          />
-        </div>
+<div className="space-y-1">
+  <label className="text-sm font-medium text-[#0d1b3e]">Amount (₦)</label>
+  <input
+    type="number"
+    placeholder="e.g. 50000"
+    value={form.amount}
+    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+    className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+  />
+</div>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">Amount (₦)</label>
-          <input
-            type="number"
-            placeholder="e.g. 50000"
-            value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-          />
-        </div>
+<div className="space-y-1">
+  <label className="text-sm font-medium text-[#0d1b3e]">Source</label>
+  <input
+    type="text"
+    placeholder="e.g. MD, Friend"
+    value={form.source}
+    onChange={(e) => setForm({ ...form, source: e.target.value })}
+    className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+  />
+</div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium text-[#0d1b3e]">Date</label>

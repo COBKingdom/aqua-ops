@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { generateInsights } from "@/app/modules/intelligence/intelligence.service"
+import { isPremiumUser } from "@/lib/premium"
 
 export function Dashboard({
   setActiveTab,
@@ -23,7 +24,9 @@ export function Dashboard({
   const [bank, setBank] = useState<any[]>([])
   const [debts, setDebts] = useState<any[]>([])
   const [factoryName, setFactoryName] = useState("")
+  const [isPremium, setIsPremium] = useState(false)
 
+  // 🔥 LOAD LOCAL DATA
   useEffect(() => {
     setSales(JSON.parse(localStorage.getItem("sales") || "[]"))
     setExpenses(JSON.parse(localStorage.getItem("expenses") || "[]"))
@@ -34,6 +37,16 @@ export function Dashboard({
 
     const name = localStorage.getItem("factoryName")
     if (name) setFactoryName(name)
+  }, [])
+
+  // 🔥 LOAD PREMIUM STATUS (SUPABASE)
+  useEffect(() => {
+    const checkPremium = async () => {
+      const result = await isPremiumUser()
+      setIsPremium(result)
+    }
+
+    checkPremium()
   }, [])
 
   const totalSales = sales.reduce((s, i) => s + (i.amount || 0), 0)
@@ -180,26 +193,26 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* 🧠 INTELLIGENCE */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
+      {/* 🧠 INTELLIGENCE (PREMIUM) */}
+      {isPremium && (
+        <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
+          <p className="text-sm font-semibold text-gray-700">
+            Business Insights
+          </p>
 
-        <p className="text-sm font-semibold text-gray-700">
-          Business Insights
-        </p>
+          {alerts.map((a, i) => (
+            <div key={i} className="text-sm text-red-600">
+              {a}
+            </div>
+          ))}
 
-        {alerts.map((a, i) => (
-          <div key={i} className="text-sm text-red-600">
-            {a}
-          </div>
-        ))}
-
-        {insights.map((i, index) => (
-          <div key={index} className="text-sm text-green-600">
-            {i}
-          </div>
-        ))}
-
-      </div>
+          {insights.map((i, index) => (
+            <div key={index} className="text-sm text-green-600">
+              {i}
+            </div>
+          ))}
+        </div>
+      )}
 
     </div>
   )

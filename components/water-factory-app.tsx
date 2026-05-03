@@ -20,21 +20,28 @@ export default function WaterFactoryApp() {
   const [showAuth, setShowAuth] = useState(false)
   const router = useRouter()
 
-  // ✅ LOAD FACTORY NAME OR REDIRECT
-  useEffect(() => {
-    const name = getFactoryName()
+// ✅ LOAD FACTORY OR REDIRECT (FIXED)
+useEffect(() => {
+  const factoryId = localStorage.getItem("factoryId")
+  const name = localStorage.getItem("factoryName")
 
-    if (name && name.trim() !== "") {
-      setFactoryNameState(name)
-    } else {
-      router.push("/onboarding")
-    }
-  }, [])
+  if (!factoryId) {
+    router.push("/onboarding")
+    return
+  }
+
+  // Set name if available (for UI only)
+  if (name && name.trim() !== "") {
+    setFactoryNameState(name)
+  } else {
+    setFactoryNameState("Factory")
+  }
+}, [])
 
   // 🚫 Prevent render before check completes
-  if (!factoryName || factoryName.trim() === "") {
-    return null
-  }
+if (!factoryName) {
+  return null
+}
 
   // ✅ SCREEN RENDERER
   const renderScreen = () => {

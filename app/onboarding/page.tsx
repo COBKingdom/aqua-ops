@@ -1,23 +1,45 @@
 "use client"
 
 import { useState } from "react"
-import { setFactoryName } from "@/lib/factory"
 import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
 export default function OnboardingPage() {
   const [tempName, setTempName] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const isValid = tempName.trim().length > 0
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const name = tempName.trim()
     if (!name) return
 
-    setFactoryName(name)
+    setLoading(true)
 
+    // 🔥 SAVE FACTORY TO SUPABASE
+    const { data, error } = await supabase
+      .from("factories")
+      .insert([{ name }])
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+      alert("Error creating factory. Please try again.")
+      setLoading(false)
+      return
+    }
+
+    // ✅ STORE LOCALLY
+    localStorage.setItem("factoryId", data.id)
+    localStorage.setItem("factoryName", data.name)
+
+    setLoading(false)
+
+    // 🚀 GO TO APP
     router.push("/aquaops")
   }
 
@@ -56,14 +78,14 @@ export default function OnboardingPage() {
 
           <button
             type="submit"
-            disabled={!isValid}
+            disabled={!isValid || loading}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition ${
               isValid
                 ? "bg-[#0d1b3e] text-white"
                 : "bg-gray-300 text-gray-500"
             }`}
           >
-            Continue →
+            {loading ? "Creating..." : "Continue →"}
           </button>
         </form>
 
