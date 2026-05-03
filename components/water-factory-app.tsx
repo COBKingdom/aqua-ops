@@ -20,28 +20,33 @@ export default function WaterFactoryApp() {
   const [showAuth, setShowAuth] = useState(false)
   const router = useRouter()
 
-// ✅ LOAD FACTORY OR REDIRECT (FIXED)
-useEffect(() => {
-  const factoryId = localStorage.getItem("factoryId")
-  const name = localStorage.getItem("factoryName")
+  // ✅ LOAD FACTORY OR REDIRECT (FIXED + TRIAL INIT)
+  useEffect(() => {
+    const factoryId = localStorage.getItem("factoryId")
+    const name = localStorage.getItem("factoryName")
 
-  if (!factoryId) {
-    router.push("/onboarding")
-    return
-  }
+    if (!factoryId) {
+      router.push("/onboarding")
+      return
+    }
 
-  // Set name if available (for UI only)
-  if (name && name.trim() !== "") {
-    setFactoryNameState(name)
-  } else {
-    setFactoryNameState("Factory")
-  }
-}, [])
+    // 🔥 INIT TRIAL (ONLY ON FIRST USE)
+    if (!localStorage.getItem("trialStart")) {
+      localStorage.setItem("trialStart", new Date().toISOString())
+    }
+
+    // Set name for UI
+    if (name && name.trim() !== "") {
+      setFactoryNameState(name)
+    } else {
+      setFactoryNameState("Factory")
+    }
+  }, [])
 
   // 🚫 Prevent render before check completes
-if (!factoryName) {
-  return null
-}
+  if (!factoryName) {
+    return null
+  }
 
   // ✅ SCREEN RENDERER
   const renderScreen = () => {
@@ -115,7 +120,7 @@ if (!factoryName) {
         </div>
 
         {/* SCREEN */}
-       <div className="flex-1 overflow-y-auto px-2 py-1">
+        <div className="flex-1 overflow-y-auto px-2 py-1">
           {renderScreen()}
         </div>
 
