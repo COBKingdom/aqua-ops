@@ -11,35 +11,108 @@ import {
 
 import { generateInsights } from "@/app/modules/intelligence/intelligence.service"
 import { isPremiumUser } from "@/lib/premium"
+import { supabase } from "@/lib/supabase"
+import { getFactoryId } from "@/lib/factory"
 
 export function Dashboard({
   setActiveTab,
 }: {
   setActiveTab: (tab: string) => void
 }) {
-  const [sales, setSales] = useState<any[]>([])
-  const [expenses, setExpenses] = useState<any[]>([])
-  const [production, setProduction] = useState<any[]>([])
-  const [loans, setLoans] = useState<any[]>([])
-  const [bank, setBank] = useState<any[]>([])
-  const [debts, setDebts] = useState<any[]>([])
   const [factoryName, setFactoryName] = useState("")
   const [isPremium, setIsPremium] = useState(false)
 
-  // 🔥 LOAD LOCAL DATA
+  // 🔥 FILTER
+  const [period, setPeriod] = useState("today")
+
+  // 🔥 DATA (MATCH REPORTS)
+  const [data, setData] = useState({
+    sales: 0,
+    expenses: 0,
+    production: 0,
+    debt: 0,
+  })
+
+  const getDateFilter = () => {
+    const now = new Date()
+
+    if (period === "today") return now.toISOString().split("T")[0]
+
+    if (period === "week")
+      return new Date(now.getTime() - 7 * 86400000)
+        .toISOString()
+        .split("T")[0]
+
+    if (period === "month")
+      return new Date(now.getTime() - 30 * 86400000)
+        .toISOString()
+        .split("T")[0]
+  }
+
+  // 🔥 LOAD DATA (SAME AS REPORTS)
   useEffect(() => {
-    setSales(JSON.parse(localStorage.getItem("sales") || "[]"))
-    setExpenses(JSON.parse(localStorage.getItem("expenses") || "[]"))
-    setProduction(JSON.parse(localStorage.getItem("production") || "[]"))
-    setLoans(JSON.parse(localStorage.getItem("loans") || "[]"))
-    setBank(JSON.parse(localStorage.getItem("bank") || "[]"))
-    setDebts(JSON.parse(localStorage.getItem("debts") || "[]"))
+    const loadDashboard = async () => {
+      const factoryId = getFactoryId()
+      if (!factoryId) return
 
-    const name = localStorage.getItem("factoryName")
-    if (name) setFactoryName(name)
-  }, [])
+      try {
+        const dateFilter = getDateFilter()
 
-  // 🔥 LOAD PREMIUM STATUS (SUPABASE)
+        const { data: sales } = await supabase
+          .from("sales")
+          .select("*")
+          .eq("factory_id", factoryId)
+          .gte("date", dateFilter)
+
+        const { data: expenses } = await supabase
+          .from("expenses")
+          .select("*")
+          .eq("factory_id", factoryId)
+          .gte("date", dateFilter)
+
+        const { data: production } = await supabase
+          .from("production")
+          .select("*")
+          .eq("factory_id", factoryId)
+          .gte("date", dateFilter)
+
+        const { data: debts } = await supabase
+          .from("sales")
+          .select("*")
+          .eq("factory_id", factoryId)
+          .gt("balance", 0)
+
+        const totalSales =
+          sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
+
+        const totalExpenses =
+          expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+
+        const totalProduction =
+          production?.reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+
+        const totalDebt =
+          debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+
+        setData({
+          sales: totalSales,
+          expenses: totalExpenses,
+          production: totalProduction,
+          debt: totalDebt,
+        })
+
+        const name = localStorage.getItem("factoryName")
+        if (name) setFactoryName(name)
+
+      } catch (err) {
+        console.error("Dashboard load error:", err)
+      }
+    }
+
+    loadDashboard()
+  }, [period])
+
+  // 🔥 PREMIUM CHECK
   useEffect(() => {
     const checkPremium = async () => {
       const result = await isPremiumUser()
@@ -49,22 +122,38 @@ export function Dashboard({
     checkPremium()
   }, [])
 
-  const totalSales = sales.reduce((s, i) => s + (i.amount || 0), 0)
-  const totalExpenses = expenses.reduce((s, i) => s + (i.amount || 0), 0)
-  const totalProduction = production.reduce((s, i) => s + (i.quantity || 0), 0)
-  const totalDebts = debts.reduce((s, d) => s + (d.amount || 0), 0)
-
-  const profit = totalSales - totalExpenses
+  const profit = data.sales - data.expenses
 
   const { insights, alerts } = generateInsights({
-    sales: totalSales,
-    expenses: totalExpenses,
-    debt: totalDebts,
+    sales: data.sales,
+    expenses: data.expenses,
+    debt: data.debt,
     cash: profit,
   })
 
   return (
     <div className="space-y-5 p-3 pb-20">
+
+      {/* 🔥 FILTER BUTTONS */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { key: "today", label: "Today" },
+          { key: "week", label: "Week" },
+          { key: "month", label: "Month" },
+        ].map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-3 py-1 rounded-lg text-sm ${
+              period === p.key
+                ? "bg-[#2563eb] text-white"
+                : "bg-gray-100"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {/* 🔥 PRIMARY CARD */}
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
@@ -88,28 +177,28 @@ export function Dashboard({
           <div>
             <p className="opacity-70">Sales</p>
             <p className="font-semibold text-base">
-              {formatCurrency(totalSales)}
+              {formatCurrency(data.sales)}
             </p>
           </div>
 
           <div>
             <p className="opacity-70">Expenses</p>
             <p className="font-semibold text-base">
-              {formatCurrency(totalExpenses)}
+              {formatCurrency(data.expenses)}
             </p>
           </div>
 
           <div>
             <p className="opacity-70">Debt</p>
             <p className="font-semibold text-base">
-              {formatCurrency(totalDebts)}
+              {formatCurrency(data.debt)}
             </p>
           </div>
 
           <div>
             <p className="opacity-70">Production</p>
             <p className="font-semibold text-base">
-              {totalProduction} bags
+              {data.production} bags
             </p>
           </div>
 
@@ -126,7 +215,7 @@ export function Dashboard({
 
           <button
             onClick={() => setActiveTab("expenses")}
-            className="flex items-center gap-3 bg-[#2563eb] text-white py-3 px-3 rounded-xl font-medium shadow-sm active:scale-[0.97]"
+            className="flex items-center gap-3 bg-[#2563eb] text-white py-3 px-3 rounded-xl font-medium shadow-sm"
           >
             <Wallet size={16} />
             Add Expense
@@ -134,7 +223,7 @@ export function Dashboard({
 
           <button
             onClick={() => setActiveTab("sales")}
-            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium active:scale-[0.97]"
+            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
           >
             <ShoppingCart size={16} />
             Add Sale
@@ -142,7 +231,7 @@ export function Dashboard({
 
           <button
             onClick={() => setActiveTab("production")}
-            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium active:scale-[0.97]"
+            className="flex items-center gap-3 bg-blue-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
           >
             <Factory size={16} />
             Production
@@ -150,7 +239,7 @@ export function Dashboard({
 
           <button
             onClick={() => setActiveTab("reports")}
-            className="flex items-center gap-3 bg-orange-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium active:scale-[0.97]"
+            className="flex items-center gap-3 bg-orange-50 text-[#1f3a8a] py-3 px-3 rounded-xl font-medium"
           >
             <BarChart3 size={16} />
             Reports
@@ -177,15 +266,15 @@ export function Dashboard({
           <div className="flex justify-between">
             <span>Debt Level</span>
             <span className="text-red-600 font-medium">
-              {formatCurrency(totalDebts)}
+              {formatCurrency(data.debt)}
             </span>
           </div>
 
           <div className="flex justify-between">
             <span>Efficiency</span>
             <span className="font-medium">
-              {totalSales > 0
-                ? `${Math.round((1 - totalExpenses / totalSales) * 100)}%`
+              {data.sales > 0
+                ? `${Math.round((1 - data.expenses / data.sales) * 100)}%`
                 : "0%"}
             </span>
           </div>
@@ -193,7 +282,7 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* 🧠 INTELLIGENCE (PREMIUM) */}
+      {/* 🧠 INTELLIGENCE */}
       {isPremium && (
         <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
           <p className="text-sm font-semibold text-gray-700">
