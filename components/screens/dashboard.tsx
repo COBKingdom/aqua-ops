@@ -123,6 +123,7 @@ export function Dashboard({
   }, [])
 
   const profit = data.sales - data.expenses
+  const netCashProfit = profit - data.debt
 
   const { insights, alerts } = generateInsights({
     sales: data.sales,
@@ -195,12 +196,17 @@ export function Dashboard({
             </p>
           </div>
 
-          <div>
-            <p className="opacity-70">Production</p>
-            <p className="font-semibold text-base">
-              {data.production} bags
-            </p>
-          </div>
+<div>
+  <p className="opacity-70">Net Cash Profit</p>
+  <p className={`font-semibold text-base ${
+    netCashProfit < 0 ? "text-red-400" : "text-green-300"
+  }`}>
+    {formatCurrency(netCashProfit)}
+  </p>
+  <p className="text-[10px] opacity-70">
+    {netCashProfit < 0 ? "Loss" : "Cash Profit"}
+  </p>
+</div>
 
         </div>
       </div>
@@ -249,38 +255,45 @@ export function Dashboard({
       </div>
 
       {/* 📊 PERFORMANCE SNAPSHOT */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-        <p className="text-sm font-semibold text-gray-700">
-          Performance Snapshot
-        </p>
+<div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
+  <p className="text-sm font-semibold text-gray-700">
+    Performance Snapshot
+  </p>
 
-        <div className="space-y-2 text-sm">
+  <div className="space-y-2 text-sm">
 
-          <div className="flex justify-between">
-            <span>Profit</span>
-            <span className="font-medium">
-              {formatCurrency(profit)}
-            </span>
-          </div>
+    <div className="flex justify-between">
+      <span>Profit</span>
+      <span className="font-medium">
+        {formatCurrency(profit)}
+      </span>
+    </div>
 
-          <div className="flex justify-between">
-            <span>Debt Level</span>
-            <span className="text-red-600 font-medium">
-              {formatCurrency(data.debt)}
-            </span>
-          </div>
+    <div className="flex justify-between">
+      <span>Debt Level</span>
+      <span className="text-red-600 font-medium">
+        {formatCurrency(data.debt)}
+      </span>
+    </div>
 
-          <div className="flex justify-between">
-            <span>Efficiency</span>
-            <span className="font-medium">
-              {data.sales > 0
-                ? `${Math.round((1 - data.expenses / data.sales) * 100)}%`
-                : "0%"}
-            </span>
-          </div>
+    <div className="flex justify-between">
+      <span>Production</span>
+      <span className="font-medium">
+        {data.production} bags
+      </span>
+    </div>
 
-        </div>
-      </div>
+    <div className="flex justify-between">
+      <span>Efficiency</span>
+      <span className="font-medium">
+        {data.sales > 0
+          ? `${Math.round((1 - data.expenses / data.sales) * 100)}%`
+          : "0%"}
+      </span>
+    </div>
+
+  </div>
+</div>
 
       {/* 🧠 INTELLIGENCE */}
       {isPremium && (

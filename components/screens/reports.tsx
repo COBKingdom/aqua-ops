@@ -109,6 +109,7 @@ export function Reports() {
   }, [period])
 
   const profit = data.sales - data.expenses
+  const netCashProfit = profit - data.debt
 
   // 🔥 REPORT GENERATOR
   const generateReportText = () => {
@@ -242,17 +243,39 @@ Generated via AquaOps`
       </div>
 
       {/* HERO */}
-      <div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
-        <p className="text-xs opacity-80">Net Result</p>
-        <p className="text-3xl font-bold mt-2">
-          {formatCurrency(profit)}
-        </p>
-        <p className="text-xs mt-1 opacity-90">
-          {profit > 0 && "Profit — Business is growing"}
-          {profit < 0 && "Loss — Business is declining"}
-          {profit === 0 && "Break-even"}
-        </p>
-      </div>
+<div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
+
+  <p className="text-xs opacity-80">Net Result</p>
+
+  <p className="text-3xl font-bold mt-2">
+    {formatCurrency(profit)}
+  </p>
+
+  <p className="text-xs mt-1 opacity-90">
+    {profit > 0 && "Profit — Business is growing"}
+    {profit < 0 && "Loss — Business is declining"}
+    {profit === 0 && "Break-even"}
+  </p>
+
+  {/* 🔥 NET CASH PROFIT */}
+  <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
+
+    <div>
+      <p className="text-xs opacity-70">Net Cash Profit</p>
+      <p className={`text-lg font-semibold ${
+        netCashProfit < 0 ? "text-red-400" : "text-green-400"
+      }`}>
+        {formatCurrency(netCashProfit)}
+      </p>
+    </div>
+
+    <p className="text-xs opacity-70">
+      {netCashProfit < 0 ? "Loss" : "Cash Profit"}
+    </p>
+
+  </div>
+
+</div>
 
       {/* GRID */}
       <div className="grid grid-cols-2 gap-3">
