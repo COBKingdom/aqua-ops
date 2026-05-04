@@ -1,3 +1,4 @@
+// redeploy trigger
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#eef0f5] py-5 px-4 flex justify-center">
