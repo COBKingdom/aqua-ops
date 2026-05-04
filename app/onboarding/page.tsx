@@ -23,7 +23,6 @@ export default function OnboardingPage() {
     try {
       let factoryId = ""
 
-      // 🔍 CHECK IF FACTORY EXISTS (SAFE MATCH)
       const { data: existing, error: fetchError } = await supabase
         .from("factories")
         .select("id, name")
@@ -38,10 +37,8 @@ export default function OnboardingPage() {
       }
 
       if (existing && existing.length > 0) {
-        // ✅ REUSE EXISTING FACTORY
         factoryId = existing[0].id
       } else {
-        // 🆕 CREATE NEW FACTORY
         const { data: newFactory, error: insertError } = await supabase
           .from("factories")
           .insert([{ name }])
@@ -58,7 +55,6 @@ export default function OnboardingPage() {
         factoryId = newFactory.id
       }
 
-      // 💾 SAVE LOCALLY
       localStorage.setItem("factoryId", factoryId)
       localStorage.setItem("factoryName", name)
 
@@ -76,6 +72,12 @@ export default function OnboardingPage() {
 
   return (
     <main className="min-h-screen bg-[#eef0f5] flex items-center justify-center px-4">
+
+      {/* 🔥 TEST BLOCK (SAFE) */}
+      <div style={{ position: "absolute", top: 10, left: 10, fontSize: 12 }}>
+        ONBOARDING PAGE ACTIVE
+      </div>
+
       <div className="w-full max-w-sm space-y-4">
 
         <div className="text-center flex flex-col items-center space-y-2">
