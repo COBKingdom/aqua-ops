@@ -74,9 +74,7 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-[#eef0f5] flex items-center justify-center px-4">
 
       {/* 🔥 TEST BLOCK (SAFE) */}
-      <div style={{ position: "absolute", top: 10, left: 10, fontSize: 12 }}>
-        ONBOARDING PAGE ACTIVE
-      </div>
+
 
       <div className="w-full max-w-sm space-y-4">
 
