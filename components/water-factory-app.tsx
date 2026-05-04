@@ -22,6 +22,11 @@ export default function WaterFactoryApp() {
 
   // ✅ LOAD FACTORY OR REDIRECT (FIXED + TRIAL INIT)
   useEffect(() => {
+    const path = window.location.pathname
+
+    // ✅ DO NOTHING if already on onboarding
+    if (path === "/onboarding") return
+
     const factoryId = localStorage.getItem("factoryId")
     const name = localStorage.getItem("factoryName")
 
