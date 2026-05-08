@@ -19,6 +19,15 @@ export default function OnboardingPage() {
     if (!name) return
 
     setLoading(true)
+    const {
+  data: { user },
+} = await supabase.auth.getUser()
+
+if (!user) {
+  alert("Please login first")
+  setLoading(false)
+  return
+}
 
     try {
       let factoryId = ""
@@ -41,7 +50,12 @@ export default function OnboardingPage() {
       } else {
         const { data: newFactory, error: insertError } = await supabase
           .from("factories")
-          .insert([{ name }])
+          .insert([
+  {
+    name,
+    user_id: user.id,
+  },
+])
           .select("id")
           .single()
 

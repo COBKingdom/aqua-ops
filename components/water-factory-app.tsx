@@ -13,16 +13,23 @@ import { AuthModal } from "@/components/auth-modal"
 import { useRouter } from "next/navigation"
 import { Loans } from "@/components/screens/loans"
 import { Bank } from "@/components/screens/bank"
+import { getUser } from "@/lib/auth"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const router = useRouter()
 
   // ✅ LOAD FACTORY OR REDIRECT (FIXED + TRIAL INIT)
   useEffect(() => {
     const path = window.location.pathname
+    getUser().then((user) => {
+  if (user?.email) {
+    setUserEmail(user.email)
+  }
+})
 
     // ✅ DO NOTHING if already on onboarding
     if (path === "/onboarding") return
@@ -94,7 +101,7 @@ export default function WaterFactoryApp() {
               onClick={() => setShowAuth(true)}
               className="text-xs bg-[#0d1b3e] text-white px-3 py-1.5 rounded-lg"
             >
-              Login
+              {userEmail ? "Account" : "Login"}
             </button>
 
             <button
