@@ -61,7 +61,9 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           return
         }
 
-        alert("Account created successfully. Please login.")
+        alert(
+  "Account created successfully. Please check your email and verify your AquaOps account before logging in."
+)
         setIsLogin(true)
       }
 
