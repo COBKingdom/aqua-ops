@@ -151,9 +151,7 @@ export function Dashboard({
       {/* PRIMARY CARD */}
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
         <p className="text-xs opacity-70">{factoryName || "Factory"} Overview</p>
-        <p className="text-xs">
-          {getFactoryId()}
-       </p>
+
 
         <p className="text-3xl font-bold mt-3">
           {formatCurrency(profit)}
