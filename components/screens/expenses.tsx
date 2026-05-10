@@ -1,12 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { getFactoryId } from "@/lib/factory"
+import {
+  getFactoryId,
+  getFactoryCurrency,
+} from "@/lib/factory"
+import { formatCurrency } from "@/lib/format"
 import { Wallet } from "lucide-react"
 
 export function Expenses() {
   const [saved, setSaved] = useState(false)
+
+  const [currencyCode, setCurrencyCode] = useState("NGN")
+  const [currencySymbol, setCurrencySymbol] = useState("₦")
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -14,6 +21,17 @@ export function Expenses() {
     amount: "",
     notes: "",
   })
+
+  useEffect(() => {
+    const loadCurrency = async () => {
+      const currency = await getFactoryCurrency()
+
+      setCurrencyCode(currency.code)
+      setCurrencySymbol(currency.symbol)
+    }
+
+    loadCurrency()
+  }, [])
 
   const handleSubmit = async () => {
     const factoryId = getFactoryId()
@@ -48,6 +66,7 @@ export function Expenses() {
 
     setTimeout(() => {
       setSaved(false)
+
       setForm({
         ...form,
         category: "",
@@ -62,8 +81,13 @@ export function Expenses() {
 
       {/* HEADER */}
       <div>
-        <h1 className="text-lg font-bold text-[#0d1b3e]">Expenses</h1>
-        <p className="text-xs text-gray-500">Record daily expenses</p>
+        <h1 className="text-lg font-bold text-[#0d1b3e]">
+          Expenses
+        </h1>
+
+        <p className="text-xs text-gray-500">
+          Record daily expenses
+        </p>
       </div>
 
       {/* MAIN CARD */}
@@ -73,25 +97,52 @@ export function Expenses() {
         <input
           type="date"
           value={form.date}
-          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              date: e.target.value,
+            })
+          }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
-        {/* AMOUNT (NOW FIRST ✅) */}
+        {/* AMOUNT */}
         <input
           type="number"
-          placeholder="Amount"
+          placeholder={`Amount (${currencySymbol})`}
           value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              amount: e.target.value,
+            })
+          }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
+
+        {/* LIVE PREVIEW */}
+        <div className="bg-gray-50 p-3 rounded-lg text-sm">
+          <p>
+            Expense Amount:{" "}
+            {formatCurrency(
+              Number(form.amount || 0),
+              currencyCode,
+              currencySymbol
+            )}
+          </p>
+        </div>
 
         {/* CATEGORY */}
         <input
           type="text"
           placeholder="Category (e.g. Diesel, Salary)"
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              category: e.target.value,
+            })
+          }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
@@ -100,7 +151,12 @@ export function Expenses() {
           type="text"
           placeholder="Notes (optional)"
           value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              notes: e.target.value,
+            })
+          }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
@@ -120,10 +176,15 @@ export function Expenses() {
 
       {/* INFO CARD */}
       <div className="bg-blue-50 p-3 rounded-xl text-sm text-[#0d1b3e]">
+
         <div className="flex items-center gap-2">
           <Wallet size={16} />
-          <span>Track spending to stay profitable</span>
+
+          <span>
+            Track spending to stay profitable
+          </span>
         </div>
+
       </div>
 
     </div>

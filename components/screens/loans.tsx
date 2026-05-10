@@ -1,11 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import {
+  getFactoryCurrency,
+} from "@/lib/factory"
+import { formatCurrency } from "@/lib/format"
 
 export function Loans() {
   const [loans, setLoans] = useState<any[]>([])
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [repayment, setRepayment] = useState("")
+
+  const [currencyCode, setCurrencyCode] = useState("NGN")
+  const [currencySymbol, setCurrencySymbol] = useState("₦")
 
   const [form, setForm] = useState({
     source: "",
@@ -14,8 +21,20 @@ export function Loans() {
   })
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("loans") || "[]")
-    setLoans(saved)
+    const loadData = async () => {
+      const saved = JSON.parse(
+        localStorage.getItem("loans") || "[]"
+      )
+
+      setLoans(saved)
+
+      const currency = await getFactoryCurrency()
+
+      setCurrencyCode(currency.code)
+      setCurrencySymbol(currency.symbol)
+    }
+
+    loadData()
   }, [])
 
   const handleSubmit = () => {
@@ -30,7 +49,11 @@ export function Loans() {
     const updated = [newLoan, ...loans]
 
     setLoans(updated)
-    localStorage.setItem("loans", JSON.stringify(updated))
+
+    localStorage.setItem(
+      "loans",
+      JSON.stringify(updated)
+    )
 
     setForm({
       source: "",
@@ -47,7 +70,9 @@ export function Loans() {
     const loan = updated[selectedIndex]
 
     const pay = Number(repayment)
-    const totalPaid = Number(loan.amount_paid || 0) + pay
+
+    const totalPaid =
+      Number(loan.amount_paid || 0) + pay
 
     if (totalPaid > loan.amount) {
       alert("Repayment exceeds loan amount")
@@ -57,7 +82,11 @@ export function Loans() {
     loan.amount_paid = totalPaid
 
     setLoans(updated)
-    localStorage.setItem("loans", JSON.stringify(updated))
+
+    localStorage.setItem(
+      "loans",
+      JSON.stringify(updated)
+    )
 
     setRepayment("")
     setSelectedIndex(null)
@@ -67,43 +96,92 @@ export function Loans() {
     <div className="space-y-4 p-3 pb-20">
 
       <header className="pt-1">
-        <h1 className="text-lg font-bold text-[#0d1b3e]">Loans</h1>
-        <p className="text-xs text-gray-500">Track business loans</p>
+
+        <h1 className="text-lg font-bold text-[#0d1b3e]">
+          Loans
+        </h1>
+
+        <p className="text-xs text-gray-500">
+          Track business loans
+        </p>
+
       </header>
 
       {/* ADD LOAN */}
       <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
 
-<div className="space-y-1">
-  <label className="text-sm font-medium text-[#0d1b3e]">Amount (₦)</label>
-  <input
-    type="number"
-    placeholder="e.g. 50000"
-    value={form.amount}
-    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-    className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-  />
-</div>
+        <div className="space-y-1">
 
-<div className="space-y-1">
-  <label className="text-sm font-medium text-[#0d1b3e]">Source</label>
-  <input
-    type="text"
-    placeholder="e.g. MD, Friend"
-    value={form.source}
-    onChange={(e) => setForm({ ...form, source: e.target.value })}
-    className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-  />
-</div>
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Amount ({currencySymbol})
+          </label>
+
+          <input
+            type="number"
+            placeholder="e.g. 50000"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                amount: e.target.value,
+              })
+            }
+            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+          />
+
+        </div>
+
+        {/* LIVE PREVIEW */}
+        <div className="bg-gray-50 p-3 rounded-lg text-sm">
+          <p>
+            Loan Amount:{" "}
+            {formatCurrency(
+              Number(form.amount || 0),
+              currencyCode,
+              currencySymbol
+            )}
+          </p>
+        </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-[#0d1b3e]">Date</label>
+
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Source
+          </label>
+
+          <input
+            type="text"
+            placeholder="e.g. MD, Friend"
+            value={form.source}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                source: e.target.value,
+              })
+            }
+            className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
+          />
+
+        </div>
+
+        <div className="space-y-1">
+
+          <label className="text-sm font-medium text-[#0d1b3e]">
+            Date
+          </label>
+
           <input
             type="date"
             value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                date: e.target.value,
+              })
+            }
             className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
           />
+
         </div>
 
         <button
@@ -113,11 +191,15 @@ export function Loans() {
         >
           Add Loan
         </button>
+
       </div>
 
       {/* LOANS LIST */}
       <div className="bg-white p-3 rounded-xl shadow-sm">
-        <p className="text-xs text-gray-500 mb-2">Recent Loans</p>
+
+        <p className="text-xs text-gray-500 mb-2">
+          Recent Loans
+        </p>
 
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
 
@@ -136,24 +218,40 @@ export function Loans() {
                 key={index}
                 className="bg-blue-50 px-3 py-2 rounded-lg space-y-2"
               >
+
                 <div className="flex justify-between items-center">
+
                   <div>
                     <p className="text-sm font-medium text-[#2563eb]">
                       {item.source}
                     </p>
+
                     <p className="text-xs text-gray-400">
                       {item.date}
                     </p>
                   </div>
 
                   <div className="text-right">
+
                     <p className="text-sm font-semibold text-[#0d1b3e]">
-                      ₦{item.amount.toLocaleString()}
+                      {formatCurrency(
+                        item.amount,
+                        currencyCode,
+                        currencySymbol
+                      )}
                     </p>
+
                     <p className="text-xs text-red-500">
-                      Balance: ₦{balance.toLocaleString()}
+                      Balance:{" "}
+                      {formatCurrency(
+                        balance,
+                        currencyCode,
+                        currencySymbol
+                      )}
                     </p>
+
                   </div>
+
                 </div>
 
                 {/* REPAY BUTTON */}
@@ -167,26 +265,33 @@ export function Loans() {
                 {/* REPAYMENT INPUT */}
                 {selectedIndex === index && (
                   <div className="flex gap-2 mt-2">
+
                     <input
                       type="number"
-                      placeholder="Enter amount"
+                      placeholder={`Enter amount (${currencySymbol})`}
                       value={repayment}
-                      onChange={(e) => setRepayment(e.target.value)}
+                      onChange={(e) =>
+                        setRepayment(e.target.value)
+                      }
                       className="flex-1 h-9 border rounded px-2 text-sm"
                     />
+
                     <button
                       onClick={handleRepayment}
                       className="bg-green-600 text-white px-3 rounded text-sm"
                     >
                       OK
                     </button>
+
                   </div>
                 )}
+
               </div>
             )
           })}
 
         </div>
+
       </div>
 
     </div>

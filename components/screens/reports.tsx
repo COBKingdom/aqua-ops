@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { getFactoryId } from "@/lib/factory"
+import { getFactoryId, getFactoryCurrency } from "@/lib/factory"
 import { formatCurrency } from "@/lib/format"
 import { isPremiumUser } from "@/lib/premium"
 
@@ -17,6 +17,8 @@ export function Reports() {
   const [period, setPeriod] = useState("today")
   const [includeHistory, setIncludeHistory] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
+  const [currencyCode, setCurrencyCode] = useState("NGN")
+  const [currencySymbol, setCurrencySymbol] = useState("₦")
 
   // 🔥 HISTORY DATA
   const [salesData, setSalesData] = useState<any[]>([])
@@ -52,6 +54,10 @@ export function Reports() {
   const loadReport = async () => {
     const factoryId = getFactoryId()
     if (!factoryId) return
+    const currency = await getFactoryCurrency()
+
+    setCurrencyCode(currency.code)
+    setCurrencySymbol(currency.symbol)
 
     const dateFilter = getDateFilter()
 
@@ -118,20 +124,20 @@ export function Reports() {
 ━━━━━━━━━━━━━━━━━━━
 
 💰 Revenue
-Sales: ${formatCurrency(data.sales)}
+Sales: ${formatCurrency(data.sales, currencyCode, currencySymbol)}
 
 💸 Expenses
-Total: ${formatCurrency(data.expenses)}
+Total: ${formatCurrency(data.expenses, currencyCode, currencySymbol)}
 
 📦 Operations
 Production: ${data.production} bags
 
 ⚠️ Risk
-Outstanding Debt: ${formatCurrency(data.debt)}
+Outstanding Debt: ${formatCurrency(data.debt, currencyCode, currencySymbol)}
 
 ━━━━━━━━━━━━━━━━━━━
 
-📈 Net Result: ${formatCurrency(profit)}
+📈 Net Result: ${formatCurrency(profit, currencyCode, currencySymbol)}
 `
 
     if (includeHistory && isPremium) {
@@ -148,7 +154,7 @@ ${
         .map(
           (s) =>
             `- ${s.customer_name || "Customer"}: ${formatCurrency(
-              s.total_amount
+              s.total_amount, currencyCode, currencySymbol
             )}`
         )
         .join("\n")
@@ -160,7 +166,7 @@ ${
     ? "No expenses"
     : expenseData
         .map(
-          (e) => `- ${e.category}: ${formatCurrency(e.amount)}`
+          (e) => `- ${e.category}: ${formatCurrency(e.amount, currencyCode, currencySymbol)}`
         )
         .join("\n")
 }
@@ -248,7 +254,7 @@ Generated via AquaOps`
   <p className="text-xs opacity-80">Net Result</p>
 
   <p className="text-3xl font-bold mt-2">
-    {formatCurrency(profit)}
+    {formatCurrency(profit, currencyCode, currencySymbol)}
   </p>
 
   <p className="text-xs mt-1 opacity-90">
@@ -265,7 +271,7 @@ Generated via AquaOps`
       <p className={`text-lg font-semibold ${
         netCashProfit < 0 ? "text-red-400" : "text-green-400"
       }`}>
-        {formatCurrency(netCashProfit)}
+        {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
       </p>
     </div>
 
@@ -283,14 +289,14 @@ Generated via AquaOps`
         <div className="bg-white p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Sales</p>
           <p className="text-lg font-bold mt-1">
-            {formatCurrency(data.sales)}
+            {formatCurrency(data.sales, currencyCode, currencySymbol)}
           </p>
         </div>
 
         <div className="bg-white p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Expenses</p>
           <p className="text-lg font-bold mt-1">
-            {formatCurrency(data.expenses)}
+            {formatCurrency(data.expenses, currencyCode, currencySymbol)}
           </p>
         </div>
 
@@ -304,7 +310,7 @@ Generated via AquaOps`
         <div className="bg-white p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Debt</p>
           <p className="text-lg font-bold text-red-600 mt-1">
-            {formatCurrency(data.debt)}
+            {formatCurrency(data.debt, currencyCode, currencySymbol)}
           </p>
         </div>
 

@@ -19,8 +19,10 @@ export function Dashboard({
 }: {
   setActiveTab: (tab: string) => void
 }) {
-  const [factoryName, setFactoryName] = useState("")
-  const [isPremium, setIsPremium] = useState(false)
+const [factoryName, setFactoryName] = useState("")
+const [currencyCode, setCurrencyCode] = useState("NGN")
+const [currencySymbol, setCurrencySymbol] = useState("₦")
+const [isPremium, setIsPremium] = useState(false)
 
   const [period, setPeriod] = useState("today")
 
@@ -99,8 +101,17 @@ export function Dashboard({
           debt: totalDebt,
         })
 
-        const name = localStorage.getItem("factoryName")
-        if (name) setFactoryName(name)
+const { data: factory } = await supabase
+  .from("factories")
+  .select("name, currency_code, currency_symbol")
+  .eq("id", factoryId)
+  .single()
+
+if (factory) {
+  setFactoryName(factory.name || "Factory")
+  setCurrencyCode(factory.currency_code || "NGN")
+  setCurrencySymbol(factory.currency_symbol || "₦")
+}
 
       } catch (err) {
         console.error("Dashboard load error:", err)
@@ -133,28 +144,77 @@ export function Dashboard({
   return (
     <div className="space-y-5 p-3 pb-20">
 
-      {/* FILTER */}
-      <div className="flex gap-2 flex-wrap">
-        {["today", "week", "month"].map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1 rounded-lg text-sm ${
-              period === p ? "bg-[#2563eb] text-white" : "bg-gray-100"
-            }`}
-          >
-            {p.charAt(0).toUpperCase() + p.slice(1)}
-          </button>
-        ))}
-      </div>
+{/* FILTER + CURRENCY */}
+<div className="flex items-center justify-between gap-2">
 
+  <div className="flex gap-2 flex-wrap">
+    {["today", "week", "month"].map((p) => (
+      <button
+        key={p}
+        onClick={() => setPeriod(p)}
+        className={`px-3 py-1 rounded-lg text-sm ${
+          period === p
+            ? "bg-[#2563eb] text-white"
+            : "bg-gray-100"
+        }`}
+      >
+        {p.charAt(0).toUpperCase() + p.slice(1)}
+      </button>
+    ))}
+  </div>
+
+  <select
+    value={currencyCode}
+    onChange={async (e) => {
+      const value = e.target.value
+
+      const currencies = {
+        NGN: "₦",
+        USD: "$",
+        GBP: "£",
+        EUR: "€",
+        KES: "KSh",
+        GHS: "GH₵",
+        ZAR: "R",
+      }
+
+      const symbol =
+        currencies[value as keyof typeof currencies] || "₦"
+
+      setCurrencyCode(value)
+      setCurrencySymbol(symbol)
+
+      const factoryId = getFactoryId()
+
+      if (factoryId) {
+        await supabase
+          .from("factories")
+          .update({
+            currency_code: value,
+            currency_symbol: symbol,
+          })
+          .eq("id", factoryId)
+      }
+    }}
+    className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm shadow-sm"
+  >
+    <option value="NGN">₦ NGN</option>
+    <option value="USD">$ USD</option>
+    <option value="GBP">£ GBP</option>
+    <option value="EUR">€ EUR</option>
+    <option value="KES">KSh KES</option>
+    <option value="GHS">GH₵ GHS</option>
+    <option value="ZAR">R ZAR</option>
+  </select>
+
+</div>
       {/* PRIMARY CARD */}
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
         <p className="text-xs opacity-70">{factoryName || "Factory"} Overview</p>
 
 
         <p className="text-3xl font-bold mt-3">
-          {formatCurrency(profit)}
+          {formatCurrency(profit, currencyCode, currencySymbol)}
         </p>
 
         <p className="text-xs mt-1 opacity-80">
@@ -167,23 +227,23 @@ export function Dashboard({
 
           <div>
             <p className="opacity-70">Sales</p>
-            <p className="font-semibold">{formatCurrency(data.sales)}</p>
+            <p className="font-semibold">{formatCurrency(data.sales, currencyCode, currencySymbol)}</p>
           </div>
 
           <div>
             <p className="opacity-70">Expenses</p>
-            <p className="font-semibold">{formatCurrency(data.expenses)}</p>
+            <p className="font-semibold">{formatCurrency(data.expenses, currencyCode, currencySymbol)}</p>
           </div>
 
           <div>
             <p className="opacity-70">Debt</p>
-            <p className="font-semibold">{formatCurrency(data.debt)}</p>
+            <p className="font-semibold">{formatCurrency(data.debt, currencyCode, currencySymbol)}</p>
           </div>
 
           <div>
             <p className="opacity-70">Net Cash Profit</p>
             <p className={netCashProfit < 0 ? "text-red-400" : "text-green-300"}>
-              {formatCurrency(netCashProfit)}
+              {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
             </p>
           </div>
 
@@ -213,12 +273,12 @@ export function Dashboard({
       <div className="bg-white p-4 rounded-xl shadow-sm space-y-2 text-sm">
         <div className="flex justify-between">
           <span>Profit</span>
-          <span>{formatCurrency(profit)}</span>
+          <span>{formatCurrency(profit, currencyCode, currencySymbol)}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Debt</span>
-          <span className="text-red-600">{formatCurrency(data.debt)}</span>
+          <span className="text-red-600">{formatCurrency(data.debt, currencyCode, currencySymbol)}</span>
         </div>
 
         <div className="flex justify-between">

@@ -1,12 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { getFactoryId } from "@/lib/factory"
+import {
+  getFactoryId,
+  getFactoryCurrency,
+} from "@/lib/factory"
+import { formatCurrency } from "@/lib/format"
 import { ShoppingCart } from "lucide-react"
 
 export function Sales() {
   const [saved, setSaved] = useState(false)
+
+  const [currencyCode, setCurrencyCode] = useState("NGN")
+  const [currencySymbol, setCurrencySymbol] = useState("₦")
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -15,6 +22,17 @@ export function Sales() {
     pricePerBag: "",
     amountPaid: "",
   })
+
+  useEffect(() => {
+    const loadCurrency = async () => {
+      const currency = await getFactoryCurrency()
+
+      setCurrencyCode(currency.code)
+      setCurrencySymbol(currency.symbol)
+    }
+
+    loadCurrency()
+  }, [])
 
   const total =
     Number(form.bagsSold || 0) * Number(form.pricePerBag || 0)
@@ -68,6 +86,7 @@ export function Sales() {
 
     setTimeout(() => {
       setSaved(false)
+
       setForm({
         ...form,
         customerName: "",
@@ -83,8 +102,13 @@ export function Sales() {
 
       {/* HEADER */}
       <div>
-        <h1 className="text-lg font-bold text-[#0d1b3e]">Sales</h1>
-        <p className="text-xs text-gray-500">Record daily sales</p>
+        <h1 className="text-lg font-bold text-[#0d1b3e]">
+          Sales
+        </h1>
+
+        <p className="text-xs text-gray-500">
+          Record daily sales
+        </p>
       </div>
 
       {/* MAIN CARD */}
@@ -94,7 +118,9 @@ export function Sales() {
         <input
           type="date"
           value={form.date}
-          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, date: e.target.value })
+          }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
@@ -104,7 +130,10 @@ export function Sales() {
           placeholder="Customer Name"
           value={form.customerName}
           onChange={(e) =>
-            setForm({ ...form, customerName: e.target.value })
+            setForm({
+              ...form,
+              customerName: e.target.value,
+            })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
@@ -115,7 +144,10 @@ export function Sales() {
           placeholder="Bags Sold"
           value={form.bagsSold}
           onChange={(e) =>
-            setForm({ ...form, bagsSold: e.target.value })
+            setForm({
+              ...form,
+              bagsSold: e.target.value,
+            })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
@@ -126,7 +158,10 @@ export function Sales() {
           placeholder="Price per Bag"
           value={form.pricePerBag}
           onChange={(e) =>
-            setForm({ ...form, pricePerBag: e.target.value })
+            setForm({
+              ...form,
+              pricePerBag: e.target.value,
+            })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
@@ -137,14 +172,25 @@ export function Sales() {
           placeholder="Amount Paid"
           value={form.amountPaid}
           onChange={(e) =>
-            setForm({ ...form, amountPaid: e.target.value })
+            setForm({
+              ...form,
+              amountPaid: e.target.value,
+            })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
         {/* LIVE PREVIEW */}
         <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
-          <p>Total: ₦{total.toLocaleString()}</p>
+
+          <p>
+            Total:{" "}
+            {formatCurrency(
+              total,
+              currencyCode,
+              currencySymbol
+            )}
+          </p>
 
           <p
             className={
@@ -153,8 +199,14 @@ export function Sales() {
                 : "text-green-600 font-medium"
             }
           >
-            Balance: ₦{balance.toLocaleString()}
+            Balance:{" "}
+            {formatCurrency(
+              balance,
+              currencyCode,
+              currencySymbol
+            )}
           </p>
+
         </div>
 
         {/* SAVE BUTTON */}
@@ -173,10 +225,15 @@ export function Sales() {
 
       {/* INFO CARD */}
       <div className="bg-blue-50 p-3 rounded-xl text-sm text-[#0d1b3e]">
+
         <div className="flex items-center gap-2">
           <ShoppingCart size={16} />
-          <span>Track sales and customer payments</span>
+
+          <span>
+            Track sales and customer payments
+          </span>
         </div>
+
       </div>
 
     </div>
