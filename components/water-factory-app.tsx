@@ -50,7 +50,6 @@ export default function WaterFactoryApp() {
           // FACTORY FOUND
           if (factory) {
             localStorage.setItem("factoryId", factory.id)
-            document.cookie = `factoryId=${factory.id}; path=/`
             localStorage.setItem("factoryName", factory.name)
 
             setFactoryNameState(factory.name)
