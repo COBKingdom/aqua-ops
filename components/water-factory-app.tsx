@@ -15,6 +15,7 @@ import { Loans } from "@/components/screens/loans"
 import { Bank } from "@/components/screens/bank"
 import { getUser } from "@/lib/auth"
 import { supabase } from "@/lib/supabase"
+import { AccountScreen } from "@/components/screens/account"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -24,36 +25,37 @@ export default function WaterFactoryApp() {
 
   const router = useRouter()
 
-  // ✅ LOAD FACTORY FROM AUTH USER OR LOCAL CACHE
+  // LOAD FACTORY
   useEffect(() => {
     const loadFactory = async () => {
       const path = window.location.pathname
 
-      // ✅ Skip onboarding
+      // Skip onboarding
       if (path === "/onboarding") return
 
       try {
-        // ✅ CHECK AUTH USER
+        // CHECK AUTH USER
         const user = await getUser()
 
         if (user?.email) {
           setUserEmail(user.email)
 
-          // ✅ FIND USER FACTORY
+          // FIND USER FACTORY
           const { data: factory } = await supabase
             .from("factories")
             .select("id, name")
             .eq("user_id", user.id)
             .single()
 
-          // ✅ FACTORY FOUND
+          // FACTORY FOUND
           if (factory) {
             localStorage.setItem("factoryId", factory.id)
+            document.cookie = `factoryId=${factory.id}; path=/`
             localStorage.setItem("factoryName", factory.name)
 
             setFactoryNameState(factory.name)
 
-            // ✅ INIT TRIAL
+            // INIT TRIAL
             if (!localStorage.getItem("trialStart")) {
               localStorage.setItem(
                 "trialStart",
@@ -65,7 +67,7 @@ export default function WaterFactoryApp() {
           }
         }
 
-        // ✅ FALLBACK TO LOCAL CACHE
+        // FALLBACK TO LOCAL CACHE
         const factoryId = localStorage.getItem("factoryId")
         const name = localStorage.getItem("factoryName")
 
@@ -85,12 +87,12 @@ export default function WaterFactoryApp() {
     loadFactory()
   }, [])
 
-  // 🚫 Prevent render before check completes
+  // Prevent render before load
   if (!factoryName) {
     return null
   }
 
-  // ✅ SCREEN RENDERER
+  // SCREEN RENDERER
   const renderScreen = () => {
     if (activeTab === "dashboard") {
       return <Dashboard setActiveTab={setActiveTab} />
@@ -103,11 +105,12 @@ export default function WaterFactoryApp() {
     if (activeTab === "reports") return <Reports />
     if (activeTab === "loans") return <Loans />
     if (activeTab === "bank") return <Bank />
+    if (activeTab === "account") return <AccountScreen />
 
-    return <Dashboard />
+    return <Dashboard setActiveTab={setActiveTab} />
   }
 
-  // 🔥 MAIN APP
+  // MAIN APP
   return (
     <>
       <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">
@@ -115,6 +118,7 @@ export default function WaterFactoryApp() {
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm">
 
+          {/* LOGO + FACTORY */}
           <div className="flex items-center gap-2">
             <img
               src="/icon-192.png"
@@ -133,15 +137,24 @@ export default function WaterFactoryApp() {
             </div>
           </div>
 
+          {/* ACTIONS */}
           <div className="flex gap-2">
 
+            {/* ACCOUNT */}
             <button
-              onClick={() => setShowAuth(true)}
+              onClick={() => {
+                if (userEmail) {
+                  setActiveTab("account")
+                } else {
+                  setShowAuth(true)
+                }
+              }}
               className="text-xs bg-[#0d1b3e] text-white px-3 py-1.5 rounded-lg"
             >
-              {userEmail ? "Account" : "Login"}
+              Account
             </button>
 
+            {/* CHANGE FACTORY */}
             <button
               onClick={() => {
                 const newName = prompt("Enter new factory name")
@@ -155,18 +168,6 @@ export default function WaterFactoryApp() {
             >
               Change
             </button>
-
-            {process.env.NODE_ENV === "development" && (
-              <button
-                onClick={() => {
-                  localStorage.clear()
-                  window.location.reload()
-                }}
-                className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg border border-red-700"
-              >
-                TEMP RESET
-              </button>
-            )}
 
           </div>
         </div>

@@ -13,19 +13,16 @@ import { generateInsights } from "@/app/modules/intelligence/intelligence.servic
 import { isPremiumUser } from "@/lib/premium"
 import { supabase } from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
-import { signOutUser } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
 
 export function Dashboard({
   setActiveTab,
 }: {
   setActiveTab: (tab: string) => void
 }) {
-const [factoryName, setFactoryName] = useState("")
-const [currencyCode, setCurrencyCode] = useState("NGN")
-const [currencySymbol, setCurrencySymbol] = useState("₦")
-const [isPremium, setIsPremium] = useState(false)
-const [loading, setLoading] = useState(false)
+  const [factoryName, setFactoryName] = useState("")
+  const [currencyCode, setCurrencyCode] = useState("NGN")
+  const [currencySymbol, setCurrencySymbol] = useState("₦")
+  const [isPremium, setIsPremium] = useState(false)
 
   const [period, setPeriod] = useState("today")
 
@@ -35,37 +32,32 @@ const [loading, setLoading] = useState(false)
     production: 0,
     debt: 0,
   })
-  const handleLogout = async () => {
-  try {
-    setLoading(true)
-
-    await signOutUser()
-  } catch (error) {
-    console.error(error)
-    setLoading(false)
-  }
-}
 
   const getDateFilter = () => {
     const now = new Date()
 
-    if (period === "today") return now.toISOString().split("T")[0]
+    if (period === "today") {
+      return now.toISOString().split("T")[0]
+    }
 
-    if (period === "week")
+    if (period === "week") {
       return new Date(now.getTime() - 7 * 86400000)
         .toISOString()
         .split("T")[0]
+    }
 
-    if (period === "month")
+    if (period === "month") {
       return new Date(now.getTime() - 30 * 86400000)
         .toISOString()
         .split("T")[0]
+    }
   }
 
-  // 🔥 FIXED: LOAD DATA
+  // LOAD DASHBOARD
   useEffect(() => {
     const loadDashboard = async () => {
       const factoryId = getFactoryId()
+
       if (!factoryId) return
 
       try {
@@ -96,16 +88,28 @@ const [loading, setLoading] = useState(false)
           .gt("balance", 0)
 
         const totalSales =
-          sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
+          sales?.reduce(
+            (s, i) => s + Number(i.total_amount || 0),
+            0
+          ) || 0
 
         const totalExpenses =
-          expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+          expenses?.reduce(
+            (s, i) => s + Number(i.amount || 0),
+            0
+          ) || 0
 
         const totalProduction =
-          production?.reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+          production?.reduce(
+            (s, i) => s + Number(i.bags_produced || 0),
+            0
+          ) || 0
 
         const totalDebt =
-          debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+          debts?.reduce(
+            (s, i) => s + Number(i.balance || 0),
+            0
+          ) || 0
 
         setData({
           sales: totalSales,
@@ -114,17 +118,17 @@ const [loading, setLoading] = useState(false)
           debt: totalDebt,
         })
 
-const { data: factory } = await supabase
-  .from("factories")
-  .select("name, currency_code, currency_symbol")
-  .eq("id", factoryId)
-  .single()
+        const { data: factory } = await supabase
+          .from("factories")
+          .select("name, currency_code, currency_symbol")
+          .eq("id", factoryId)
+          .single()
 
-if (factory) {
-  setFactoryName(factory.name || "Factory")
-  setCurrencyCode(factory.currency_code || "NGN")
-  setCurrencySymbol(factory.currency_symbol || "₦")
-}
+        if (factory) {
+          setFactoryName(factory.name || "Factory")
+          setCurrencyCode(factory.currency_code || "NGN")
+          setCurrencySymbol(factory.currency_symbol || "₦")
+        }
 
       } catch (err) {
         console.error("Dashboard load error:", err)
@@ -134,7 +138,7 @@ if (factory) {
     loadDashboard()
   }, [period])
 
-  // 🔥 FIXED: PREMIUM CHECK
+  // PREMIUM CHECK
   useEffect(() => {
     const checkPremium = async () => {
       const result = await isPremiumUser()
@@ -157,85 +161,85 @@ if (factory) {
   return (
     <div className="space-y-5 p-3 pb-20">
 
-{/* FILTER + CURRENCY */}
-<div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* FILTER + CURRENCY */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
 
-  <div className="flex gap-2 flex-wrap">
-    {["today", "week", "month"].map((p) => (
-      <button
-        key={p}
-        onClick={() => setPeriod(p)}
-        className={`px-3 py-1 rounded-lg text-sm ${
-          period === p
-            ? "bg-[#2563eb] text-white"
-            : "bg-gray-100"
-        }`}
-      >
-        {p.charAt(0).toUpperCase() + p.slice(1)}
-      </button>
-    ))}
-  </div>
+        {/* FILTERS */}
+        <div className="flex gap-2 flex-wrap">
+          {["today", "week", "month"].map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                period === p
+                  ? "bg-[#2563eb] text-white"
+                  : "bg-white border border-gray-200 text-gray-700"
+              }`}
+            >
+              {p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
+        </div>
 
-  <select
-    value={currencyCode}
-    onChange={async (e) => {
-      const value = e.target.value
+        {/* CURRENCY */}
+        <select
+          value={currencyCode}
+          onChange={async (e) => {
+            const value = e.target.value
 
-      const currencies = {
-        NGN: "₦",
-        USD: "$",
-        GBP: "£",
-        EUR: "€",
-        KES: "KSh",
-        GHS: "GH₵",
-        ZAR: "R",
-      }
+            const currencies = {
+              NGN: "₦",
+              USD: "$",
+              GBP: "£",
+              EUR: "€",
+              KES: "KSh",
+              GHS: "GH₵",
+              ZAR: "R",
+            }
 
-      const symbol =
-        currencies[value as keyof typeof currencies] || "₦"
+            const symbol =
+              currencies[value as keyof typeof currencies] || "₦"
 
-      setCurrencyCode(value)
-      setCurrencySymbol(symbol)
+            setCurrencyCode(value)
+            setCurrencySymbol(symbol)
 
-      const factoryId = getFactoryId()
+            const factoryId = getFactoryId()
 
-      if (factoryId) {
-        await supabase
-          .from("factories")
-          .update({
-            currency_code: value,
-            currency_symbol: symbol,
-          })
-          .eq("id", factoryId)
-      }
-    }}
-    className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm shadow-sm"
-  >
-    <option value="NGN">₦ NGN</option>
-    <option value="USD">$ USD</option>
-    <option value="GBP">£ GBP</option>
-    <option value="EUR">€ EUR</option>
-    <option value="KES">KSh KES</option>
-    <option value="GHS">GH₵ GHS</option>
-    <option value="ZAR">R ZAR</option>
-</select>
+            if (factoryId) {
+              await supabase
+                .from("factories")
+                .update({
+                  currency_code: value,
+                  currency_symbol: symbol,
+                })
+                .eq("id", factoryId)
+            }
+          }}
+          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm shadow-sm"
+        >
+          <option value="NGN">₦ NGN</option>
+          <option value="USD">$ USD</option>
+          <option value="GBP">£ GBP</option>
+          <option value="EUR">€ EUR</option>
+          <option value="KES">KSh KES</option>
+          <option value="GHS">GH₵ GHS</option>
+          <option value="ZAR">R ZAR</option>
+        </select>
 
-<Button
-  variant="outline"
-  onClick={handleLogout}
-  disabled={loading}
->
-  {loading ? "Signing out..." : "Sign Out"}
-</Button>
+      </div>
 
-</div>
       {/* PRIMARY CARD */}
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
-        <p className="text-xs opacity-70">{factoryName || "Factory"} Overview</p>
-
+        <p className="text-xs opacity-70">
+          {factoryName || "Factory"} Overview
+        </p>
 
         <p className="text-3xl font-bold mt-3">
-          {formatCurrency(profit, currencyCode, currencySymbol)}
+          {formatCurrency(
+            profit,
+            currencyCode,
+            currencySymbol
+          )}
         </p>
 
         <p className="text-xs mt-1 opacity-80">
@@ -248,23 +252,57 @@ if (factory) {
 
           <div>
             <p className="opacity-70">Sales</p>
-            <p className="font-semibold">{formatCurrency(data.sales, currencyCode, currencySymbol)}</p>
+
+            <p className="font-semibold">
+              {formatCurrency(
+                data.sales,
+                currencyCode,
+                currencySymbol
+              )}
+            </p>
           </div>
 
           <div>
             <p className="opacity-70">Expenses</p>
-            <p className="font-semibold">{formatCurrency(data.expenses, currencyCode, currencySymbol)}</p>
+
+            <p className="font-semibold">
+              {formatCurrency(
+                data.expenses,
+                currencyCode,
+                currencySymbol
+              )}
+            </p>
           </div>
 
           <div>
             <p className="opacity-70">Debt</p>
-            <p className="font-semibold">{formatCurrency(data.debt, currencyCode, currencySymbol)}</p>
+
+            <p className="font-semibold">
+              {formatCurrency(
+                data.debt,
+                currencyCode,
+                currencySymbol
+              )}
+            </p>
           </div>
 
           <div>
-            <p className="opacity-70">Net Cash Profit</p>
-            <p className={netCashProfit < 0 ? "text-red-400" : "text-green-300"}>
-              {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
+            <p className="opacity-70">
+              Net Cash Profit
+            </p>
+
+            <p
+              className={
+                netCashProfit < 0
+                  ? "text-red-400"
+                  : "text-green-300"
+              }
+            >
+              {formatCurrency(
+                netCashProfit,
+                currencyCode,
+                currencySymbol
+              )}
             </p>
           </div>
 
@@ -273,46 +311,95 @@ if (factory) {
 
       {/* QUICK ACTIONS */}
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => setActiveTab("expenses")} className="bg-blue-600 text-white p-3 rounded-xl flex gap-2">
-          <Wallet size={16}/> Add Expense
+
+        <button
+          onClick={() => setActiveTab("expenses")}
+          className="bg-blue-600 text-white p-3 rounded-xl flex gap-2"
+        >
+          <Wallet size={16} />
+          Add Expense
         </button>
 
-        <button onClick={() => setActiveTab("sales")} className="bg-blue-50 p-3 rounded-xl flex gap-2">
-          <ShoppingCart size={16}/> Add Sale
+        <button
+          onClick={() => setActiveTab("sales")}
+          className="bg-blue-50 p-3 rounded-xl flex gap-2"
+        >
+          <ShoppingCart size={16} />
+          Add Sale
         </button>
 
-        <button onClick={() => setActiveTab("production")} className="bg-blue-50 p-3 rounded-xl flex gap-2">
-          <Factory size={16}/> Production
+        <button
+          onClick={() => setActiveTab("production")}
+          className="bg-blue-50 p-3 rounded-xl flex gap-2"
+        >
+          <Factory size={16} />
+          Production
         </button>
 
-        <button onClick={() => setActiveTab("reports")} className="bg-orange-50 p-3 rounded-xl flex gap-2">
-          <BarChart3 size={16}/> Reports
+        <button
+          onClick={() => setActiveTab("reports")}
+          className="bg-orange-50 p-3 rounded-xl flex gap-2"
+        >
+          <BarChart3 size={16} />
+          Reports
         </button>
+
       </div>
 
       {/* SNAPSHOT */}
       <div className="bg-white p-4 rounded-xl shadow-sm space-y-2 text-sm">
+
         <div className="flex justify-between">
           <span>Profit</span>
-          <span>{formatCurrency(profit, currencyCode, currencySymbol)}</span>
+
+          <span>
+            {formatCurrency(
+              profit,
+              currencyCode,
+              currencySymbol
+            )}
+          </span>
         </div>
 
         <div className="flex justify-between">
           <span>Debt</span>
-          <span className="text-red-600">{formatCurrency(data.debt, currencyCode, currencySymbol)}</span>
+
+          <span className="text-red-600">
+            {formatCurrency(
+              data.debt,
+              currencyCode,
+              currencySymbol
+            )}
+          </span>
         </div>
 
         <div className="flex justify-between">
           <span>Production</span>
+
           <span>{data.production} bags</span>
         </div>
+
       </div>
 
       {/* INSIGHTS */}
       {isPremium && (
         <div className="bg-white p-4 rounded-xl shadow-sm space-y-2">
-          {alerts.map((a, i) => <div key={i} className="text-red-600">{a}</div>)}
-          {insights.map((i, index) => <div key={index} className="text-green-600">{i}</div>)}
+
+          {alerts.map((a, i) => (
+            <div key={i} className="text-red-600">
+              {a}
+            </div>
+          ))}
+
+          {insights.map((i, index) => (
+            <div
+              key={index}
+              className="text-green-600"
+            >
+              {i}
+            </div>
+          ))}
+
         </div>
       )}
 
