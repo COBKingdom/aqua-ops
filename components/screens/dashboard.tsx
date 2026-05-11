@@ -13,6 +13,8 @@ import { generateInsights } from "@/app/modules/intelligence/intelligence.servic
 import { isPremiumUser } from "@/lib/premium"
 import { supabase } from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
+import { signOutUser } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
 
 export function Dashboard({
   setActiveTab,
@@ -23,6 +25,7 @@ const [factoryName, setFactoryName] = useState("")
 const [currencyCode, setCurrencyCode] = useState("NGN")
 const [currencySymbol, setCurrencySymbol] = useState("₦")
 const [isPremium, setIsPremium] = useState(false)
+const [loading, setLoading] = useState(false)
 
   const [period, setPeriod] = useState("today")
 
@@ -32,6 +35,16 @@ const [isPremium, setIsPremium] = useState(false)
     production: 0,
     debt: 0,
   })
+  const handleLogout = async () => {
+  try {
+    setLoading(true)
+
+    await signOutUser()
+  } catch (error) {
+    console.error(error)
+    setLoading(false)
+  }
+}
 
   const getDateFilter = () => {
     const now = new Date()
@@ -145,7 +158,7 @@ if (factory) {
     <div className="space-y-5 p-3 pb-20">
 
 {/* FILTER + CURRENCY */}
-<div className="flex items-center justify-between gap-2">
+<div className="flex items-center justify-between gap-2 flex-wrap">
 
   <div className="flex gap-2 flex-wrap">
     {["today", "week", "month"].map((p) => (
@@ -205,7 +218,15 @@ if (factory) {
     <option value="KES">KSh KES</option>
     <option value="GHS">GH₵ GHS</option>
     <option value="ZAR">R ZAR</option>
-  </select>
+</select>
+
+<Button
+  variant="outline"
+  onClick={handleLogout}
+  disabled={loading}
+>
+  {loading ? "Signing out..." : "Sign Out"}
+</Button>
 
 </div>
       {/* PRIMARY CARD */}

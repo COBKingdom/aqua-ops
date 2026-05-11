@@ -14,8 +14,22 @@ export async function signIn(email: string, password: string) {
   })
 }
 
-export async function signOut() {
-  return await supabase.auth.signOut()
+export async function signOutUser() {
+  try {
+    await supabase.auth.signOut()
+
+    // Clear persisted local state
+    localStorage.removeItem("aquaops-factory")
+
+    // Future cleanup stores can go here
+    // localStorage.removeItem("expense-store")
+    // localStorage.removeItem("sales-store")
+
+    // Redirect safely
+    window.location.href = "/"
+  } catch (error) {
+    console.error("Sign out error:", error)
+  }
 }
 
 export async function getUser() {
