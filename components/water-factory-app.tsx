@@ -13,17 +13,20 @@ import { AuthModal } from "@/components/auth-modal"
 import { useRouter } from "next/navigation"
 import { Loans } from "@/components/screens/loans"
 import { Bank } from "@/components/screens/bank"
-import { getUser } from "@/lib/auth"
 import { supabase } from "@/lib/supabase"
 import { AccountScreen } from "@/components/screens/account"
+import { useAuth } from "@/contexts/AuthContext"
+import { ProtectedRoute } from "@/components/protected-route"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const router = useRouter()
+
+  // GLOBAL AUTH
+  const { user, loading } = useAuth()
 
   // LOAD FACTORY
   useEffect(() => {
@@ -34,11 +37,8 @@ export default function WaterFactoryApp() {
       if (path === "/onboarding") return
 
       try {
-        // CHECK AUTH USER
-        const user = await getUser()
-
+        // AUTH USER EXISTS
         if (user?.email) {
-          setUserEmail(user.email)
 
           // FIND USER FACTORY
           const { data: factory } = await supabase
@@ -83,10 +83,19 @@ export default function WaterFactoryApp() {
       }
     }
 
-    loadFactory()
-  }, [])
+    // WAIT FOR AUTH TO LOAD
+    if (!loading) {
+      loadFactory()
+    }
 
-  // Prevent render before load
+  }, [user, loading, router])
+
+  // WAIT FOR AUTH
+  if (loading) {
+    return null
+  }
+
+  // WAIT FOR FACTORY
   if (!factoryName) {
     return null
   }
@@ -111,7 +120,8 @@ export default function WaterFactoryApp() {
 
   // MAIN APP
   return (
-    <>
+    <ProtectedRoute>
+
       <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">
 
         {/* HEADER */}
@@ -142,7 +152,7 @@ export default function WaterFactoryApp() {
             {/* ACCOUNT */}
             <button
               onClick={() => {
-                if (userEmail) {
+                if (user) {
                   setActiveTab("account")
                 } else {
                   setShowAuth(true)
@@ -188,6 +198,7 @@ export default function WaterFactoryApp() {
       {showAuth && (
         <AuthModal onClose={() => setShowAuth(false)} />
       )}
-    </>
+
+    </ProtectedRoute>
   )
 }
