@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { signOutUser } from "@/lib/auth"
 import { getFactoryId } from "@/lib/factory"
 import { getUserPlan } from "@/lib/subscription"
+import { getTrialRemainingDays } from "@/lib/trial"
 import { Button } from "@/components/ui/button"
 
 export function AccountScreen() {
@@ -14,6 +15,9 @@ export function AccountScreen() {
   const [factoryName, setFactoryName] = useState("")
 
   const [plan, setPlan] = useState("Free")
+
+  const [trialDays, setTrialDays] =
+    useState(30)
 
   useEffect(() => {
     const loadAccount = async () => {
@@ -43,15 +47,24 @@ export function AccountScreen() {
         }
 
         // GET USER PLAN
-        const userPlan = await getUserPlan()
+        const userPlan =
+          await getUserPlan()
 
         if (userPlan === "pro") {
           setPlan("Pro")
-        } else if (userPlan === "enterprise") {
+        } else if (
+          userPlan === "enterprise"
+        ) {
           setPlan("Enterprise")
         } else {
           setPlan("Free")
         }
+
+        // GET TRIAL DAYS
+        const remainingDays =
+          getTrialRemainingDays()
+
+        setTrialDays(remainingDays)
 
       } catch (error) {
         console.error(
@@ -139,6 +152,29 @@ export function AccountScreen() {
 
       </div>
 
+      {/* TRIAL STATUS */}
+      {plan === "Free" && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 shadow-sm space-y-2">
+
+          <h2 className="font-semibold text-yellow-800">
+            AquaOps Trial
+          </h2>
+
+          <p className="text-sm text-yellow-700">
+            {trialDays > 0
+              ? `${trialDays} days remaining in your free AquaOps trial.`
+              : "Your AquaOps trial has expired."}
+          </p>
+
+          <p className="text-xs text-yellow-600">
+            Continue managing your water
+            factory seamlessly by upgrading
+            your subscription plan.
+          </p>
+
+        </div>
+      )}
+
       {/* UPGRADE CARD */}
       {plan === "Free" && (
         <div className="bg-gradient-to-r from-[#0d1b3e] to-[#2563eb] text-white rounded-2xl p-5 shadow-sm space-y-3">
@@ -149,9 +185,10 @@ export function AccountScreen() {
             </h2>
 
             <p className="text-sm opacity-90 mt-1">
-              Unlock advanced operational insights,
-              premium reports, inventory tools and
-              future AI-powered factory intelligence.
+              Unlock advanced operational
+              insights, premium reports,
+              inventory tools and future
+              AI-powered factory intelligence.
             </p>
           </div>
 
