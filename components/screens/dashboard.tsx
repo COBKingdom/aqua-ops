@@ -256,11 +256,14 @@ export function Dashboard({
             factory management.
           </p>
 
-          <button
-            className="bg-red-600 text-white text-sm px-4 py-2 rounded-lg"
-          >
-            Contact Support
-          </button>
+<a
+  href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support%2C%0A%0AMy%20AquaOps%20trial%20has%20expired%20and%20I%20would%20like%20to%20activate%20my%20subscription.%0A%0APlease%20send%20payment%20details."
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-block bg-red-600 text-white text-sm px-4 py-2 rounded-lg"
+>
+  Contact Support
+</a>
 
         </div>
       )}

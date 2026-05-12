@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase"
 import { AccountScreen } from "@/components/screens/account"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/protected-route"
+import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -114,6 +115,9 @@ export default function WaterFactoryApp() {
     if (activeTab === "loans") return <Loans />
     if (activeTab === "bank") return <Bank />
     if (activeTab === "account") return <AccountScreen />
+    if (activeTab === "admin-subscriptions") {
+  return <AdminSubscriptions />
+}
 
     return <Dashboard setActiveTab={setActiveTab} />
   }
@@ -162,6 +166,18 @@ export default function WaterFactoryApp() {
             >
               Account
             </button>
+            
+            {/* ADMIN */}
+{user?.email === "domainkc1@yahoo.com" && (
+  <button
+    onClick={() =>
+      setActiveTab("admin-subscriptions")
+    }
+    className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
+  >
+    Admin
+  </button>
+)}
 
             {/* CHANGE FACTORY */}
             <button

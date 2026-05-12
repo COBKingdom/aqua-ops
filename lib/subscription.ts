@@ -15,22 +15,22 @@ export async function getUserPlan(): Promise<PlanType> {
       return "free"
     }
 
-    // FUTURE DATABASE BILLING CHECK
-    // const { data } = await supabase
-    //   .from("subscriptions")
-    //   .select("plan")
-    //   .eq("user_id", user.id)
-    //   .single()
+    // CHECK ACTIVE SUBSCRIPTION
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("plan, status, expires_at")
+      .eq("user_id", user.id)
+      .single()
 
-    // if (data?.plan) {
-    //   return data.plan
-    // }
+    if (
+      data?.status === "active" &&
+      data?.expires_at
+    ) {
+      const expiry = new Date(data.expires_at)
 
-    // TEMP PREMIUM CHECK
-    const premium = localStorage.getItem("premium")
-
-    if (premium === "true") {
-      return "pro"
+      if (expiry > new Date()) {
+        return data.plan as PlanType
+      }
     }
 
     return "free"
@@ -45,5 +45,8 @@ export async function getUserPlan(): Promise<PlanType> {
 export async function isProUser() {
   const plan = await getUserPlan()
 
-  return plan === "pro" || plan === "enterprise"
+  return (
+    plan === "pro" ||
+    plan === "enterprise"
+  )
 }
