@@ -1,12 +1,23 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import { supabase } from "@/lib/supabase"
-import { getFactoryId, getFactoryCurrency } from "@/lib/factory"
+
+import {
+  getFactoryId,
+  getFactoryCurrency,
+} from "@/lib/factory"
+
 import { formatCurrency } from "@/lib/format"
+
 import { isPremiumUser } from "@/lib/premium"
 
-export function Reports() {
+export function Reports({
+  setActiveTab,
+}: {
+  setActiveTab: (tab: string) => void
+}) {
   const [data, setData] = useState<any>({
     sales: 0,
     expenses: 0,
@@ -14,23 +25,40 @@ export function Reports() {
     debt: 0,
   })
 
-  const [period, setPeriod] = useState("today")
-  const [includeHistory, setIncludeHistory] = useState(false)
-  const [isPremium, setIsPremium] = useState(false)
-  const [currencyCode, setCurrencyCode] = useState("NGN")
-  const [currencySymbol, setCurrencySymbol] = useState("₦")
+  const [period, setPeriod] =
+    useState("today")
 
-  // 🔥 HISTORY DATA
-  const [salesData, setSalesData] = useState<any[]>([])
-  const [expenseData, setExpenseData] = useState<any[]>([])
-  const [productionData, setProductionData] = useState<any[]>([])
+  const [includeHistory] =
+    useState(false)
 
-  // 🔥 LOAD PREMIUM STATUS
+  const [isPremium, setIsPremium] =
+    useState(false)
+
+  const [currencyCode, setCurrencyCode] =
+    useState("NGN")
+
+  const [currencySymbol, setCurrencySymbol] =
+    useState("₦")
+
+  // HISTORY DATA
+  const [salesData, setSalesData] =
+    useState<any[]>([])
+
+  const [expenseData, setExpenseData] =
+    useState<any[]>([])
+
+  const [productionData, setProductionData] =
+    useState<any[]>([])
+
+  // LOAD PREMIUM STATUS
   useEffect(() => {
-    const checkPremium = async () => {
-      const result = await isPremiumUser()
-      setIsPremium(result)
-    }
+    const checkPremium =
+      async () => {
+        const result =
+          await isPremiumUser()
+
+        setIsPremium(result)
+      }
 
     checkPremium()
   }, [])
@@ -38,110 +66,209 @@ export function Reports() {
   const getDateFilter = () => {
     const now = new Date()
 
-    if (period === "today") return now.toISOString().split("T")[0]
-
-    if (period === "week")
-      return new Date(now.getTime() - 7 * 86400000)
+    if (period === "today") {
+      return now
         .toISOString()
         .split("T")[0]
+    }
 
-    if (period === "month")
-      return new Date(now.getTime() - 30 * 86400000)
+    if (period === "week") {
+      return new Date(
+        now.getTime() -
+          7 * 86400000
+      )
         .toISOString()
         .split("T")[0]
+    }
+
+    if (period === "month") {
+      return new Date(
+        now.getTime() -
+          30 * 86400000
+      )
+        .toISOString()
+        .split("T")[0]
+    }
   }
 
   const loadReport = async () => {
-    const factoryId = getFactoryId()
-    if (!factoryId) return
-    const currency = await getFactoryCurrency()
+    try {
+      const factoryId =
+        getFactoryId()
 
-    setCurrencyCode(currency.code)
-    setCurrencySymbol(currency.symbol)
+      if (!factoryId) return
 
-    const dateFilter = getDateFilter()
+      const currency =
+        await getFactoryCurrency()
 
-    const { data: sales } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("factory_id", factoryId)
-      .gte("date", dateFilter)
+      setCurrencyCode(currency.code)
+      setCurrencySymbol(
+        currency.symbol
+      )
 
-    const { data: expenses } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("factory_id", factoryId)
-      .gte("date", dateFilter)
+      const dateFilter =
+        getDateFilter()
 
-    const { data: production } = await supabase
-      .from("production")
-      .select("*")
-      .eq("factory_id", factoryId)
-      .gte("date", dateFilter)
+      // SALES
+      const { data: sales } =
+        await supabase
+          .from("sales")
+          .select("*")
+          .eq(
+            "factory_id",
+            factoryId
+          )
+          .gte("date", dateFilter)
 
-    const { data: debts } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("factory_id", factoryId)
-      .gt("balance", 0)
+      // EXPENSES
+      const { data: expenses } =
+        await supabase
+          .from("expenses")
+          .select("*")
+          .eq(
+            "factory_id",
+            factoryId
+          )
+          .gte("date", dateFilter)
 
-    // 🔥 STORE RAW DATA
-    setSalesData(sales || [])
-    setExpenseData(expenses || [])
-    setProductionData(production || [])
+      // PRODUCTION
+      const {
+        data: production,
+      } = await supabase
+        .from("production")
+        .select("*")
+        .eq(
+          "factory_id",
+          factoryId
+        )
+        .gte("date", dateFilter)
 
-    const totalSales =
-      sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
+      // DEBTS
+      const { data: debts } =
+        await supabase
+          .from("sales")
+          .select("*")
+          .eq(
+            "factory_id",
+            factoryId
+          )
+          .gt("balance", 0)
 
-    const totalExpenses =
-      expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+      // STORE RAW DATA
+      setSalesData(sales || [])
+      setExpenseData(
+        expenses || []
+      )
+      setProductionData(
+        production || []
+      )
 
-    const totalProduction =
-      production?.reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+      const totalSales =
+        sales?.reduce(
+          (s, i) =>
+            s +
+            Number(
+              i.total_amount || 0
+            ),
+          0
+        ) || 0
 
-    const totalDebt =
-      debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+      const totalExpenses =
+        expenses?.reduce(
+          (s, i) =>
+            s +
+            Number(i.amount || 0),
+          0
+        ) || 0
 
-    setData({
-      sales: totalSales,
-      expenses: totalExpenses,
-      production: totalProduction,
-      debt: totalDebt,
-    })
+      const totalProduction =
+        production?.reduce(
+          (s, i) =>
+            s +
+            Number(
+              i.bags_produced || 0
+            ),
+          0
+        ) || 0
+
+      const totalDebt =
+        debts?.reduce(
+          (s, i) =>
+            s +
+            Number(
+              i.balance || 0
+            ),
+          0
+        ) || 0
+
+      setData({
+        sales: totalSales,
+        expenses: totalExpenses,
+        production:
+          totalProduction,
+        debt: totalDebt,
+      })
+
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   useEffect(() => {
     loadReport()
   }, [period])
 
-  const profit = data.sales - data.expenses
-  const netCashProfit = profit - data.debt
+  const profit =
+    data.sales - data.expenses
 
-  // 🔥 REPORT GENERATOR
-  const generateReportText = () => {
-    let text = `📊 BUSINESS REPORT — ${period.toUpperCase()}
+  const netCashProfit =
+    profit - data.debt
+
+  // REPORT GENERATOR
+  const generateReportText =
+    () => {
+      let text = `📊 BUSINESS REPORT — ${period.toUpperCase()}
 
 ━━━━━━━━━━━━━━━━━━━
 
 💰 Revenue
-Sales: ${formatCurrency(data.sales, currencyCode, currencySymbol)}
+Sales: ${formatCurrency(
+        data.sales,
+        currencyCode,
+        currencySymbol
+      )}
 
 💸 Expenses
-Total: ${formatCurrency(data.expenses, currencyCode, currencySymbol)}
+Total: ${formatCurrency(
+        data.expenses,
+        currencyCode,
+        currencySymbol
+      )}
 
 📦 Operations
 Production: ${data.production} bags
 
 ⚠️ Risk
-Outstanding Debt: ${formatCurrency(data.debt, currencyCode, currencySymbol)}
+Outstanding Debt: ${formatCurrency(
+        data.debt,
+        currencyCode,
+        currencySymbol
+      )}
 
 ━━━━━━━━━━━━━━━━━━━
 
-📈 Net Result: ${formatCurrency(profit, currencyCode, currencySymbol)}
+📈 Net Result: ${formatCurrency(
+        profit,
+        currencyCode,
+        currencySymbol
+      )}
 `
 
-    if (includeHistory && isPremium) {
-      text += `
+      if (
+        includeHistory &&
+        isPremium
+      ) {
+        text += `
 
 ━━━━━━━━━━━━━━━━━━━
 📜 TRANSACTION HISTORY
@@ -153,8 +280,13 @@ ${
     : salesData
         .map(
           (s) =>
-            `- ${s.customer_name || "Customer"}: ${formatCurrency(
-              s.total_amount, currencyCode, currencySymbol
+            `- ${
+              s.customer_name ||
+              "Customer"
+            }: ${formatCurrency(
+              s.total_amount,
+              currencyCode,
+              currencySymbol
             )}`
         )
         .join("\n")
@@ -166,7 +298,14 @@ ${
     ? "No expenses"
     : expenseData
         .map(
-          (e) => `- ${e.category}: ${formatCurrency(e.amount, currencyCode, currencySymbol)}`
+          (e) =>
+            `- ${
+              e.category
+            }: ${formatCurrency(
+              e.amount,
+              currencyCode,
+              currencySymbol
+            )}`
         )
         .join("\n")
 }
@@ -176,28 +315,46 @@ ${
   productionData.length === 0
     ? "No production"
     : productionData
-        .map((p) => `- ${p.bags_produced} bags`)
+        .map(
+          (p) =>
+            `- ${p.bags_produced} bags`
+        )
         .join("\n")
 }
 `
-    }
+      }
 
-    text += `
+      text += `
 
 ━━━━━━━━━━━━━━━━━━━
 Generated via AquaOps`
 
-    return text
-  }
+      return text
+    }
 
   const handleWhatsApp = () => {
-    const text = encodeURIComponent(generateReportText())
-    window.open(`https://wa.me/?text=${text}`, "_blank")
+    const text =
+      encodeURIComponent(
+        generateReportText()
+      )
+
+    window.open(
+      `https://wa.me/?text=${text}`,
+      "_blank"
+    )
   }
 
   const handleEmail = () => {
-    const subject = encodeURIComponent("Business Report")
-    const body = encodeURIComponent(generateReportText())
+    const subject =
+      encodeURIComponent(
+        "Business Report"
+      )
+
+    const body =
+      encodeURIComponent(
+        generateReportText()
+      )
+
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }
 
@@ -206,22 +363,38 @@ Generated via AquaOps`
 
       {/* HEADER */}
       <div>
-        <h1 className="text-lg font-bold text-[#0d1b3e]">Reports</h1>
+        <h1 className="text-lg font-bold text-[#0d1b3e]">
+          Reports
+        </h1>
+
         <p className="text-xs text-gray-500">
-          Professional business summary
+          Professional business
+          summary
         </p>
       </div>
 
-      {/* FILTER + HISTORY */}
+      {/* FILTERS */}
       <div className="flex gap-2 flex-wrap">
+
         {[
-          { key: "today", label: "Today" },
-          { key: "week", label: "Week" },
-          { key: "month", label: "Month" },
+          {
+            key: "today",
+            label: "Today",
+          },
+          {
+            key: "week",
+            label: "Week",
+          },
+          {
+            key: "month",
+            label: "Month",
+          },
         ].map((p) => (
           <button
             key={p.key}
-            onClick={() => setPeriod(p.key)}
+            onClick={() =>
+              setPeriod(p.key)
+            }
             className={`px-3 py-1 rounded-lg text-sm ${
               period === p.key
                 ? "bg-[#2563eb] text-white"
@@ -232,95 +405,144 @@ Generated via AquaOps`
           </button>
         ))}
 
-        {/* 🔒 HISTORY BUTTON */}
+        {/* HISTORY */}
         <button
-          onClick={() => {
-            if (!isPremium) return
-            setIncludeHistory(!includeHistory)
-          }}
-          className={`px-3 py-1 rounded-lg text-sm ${
-            includeHistory
-              ? "bg-black text-white"
-              : "bg-gray-100"
-          } ${!isPremium ? "opacity-50" : ""}`}
+          onClick={() =>
+            setActiveTab(
+              "history"
+            )
+          }
+          className="px-3 py-1 rounded-lg text-sm bg-black text-white"
         >
           History
         </button>
+
       </div>
 
       {/* HERO */}
-<div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
+      <div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
 
-  <p className="text-xs opacity-80">Net Result</p>
+        <p className="text-xs opacity-80">
+          Net Result
+        </p>
 
-  <p className="text-3xl font-bold mt-2">
-    {formatCurrency(profit, currencyCode, currencySymbol)}
-  </p>
+        <p className="text-3xl font-bold mt-2">
+          {formatCurrency(
+            profit,
+            currencyCode,
+            currencySymbol
+          )}
+        </p>
 
-  <p className="text-xs mt-1 opacity-90">
-    {profit > 0 && "Profit — Business is growing"}
-    {profit < 0 && "Loss — Business is declining"}
-    {profit === 0 && "Break-even"}
-  </p>
+        <p className="text-xs mt-1 opacity-90">
+          {profit > 0 &&
+            "Profit — Business is growing"}
 
-  {/* 🔥 NET CASH PROFIT */}
-  <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
+          {profit < 0 &&
+            "Loss — Business is declining"}
 
-    <div>
-      <p className="text-xs opacity-70">Net Cash Profit</p>
-      <p className={`text-lg font-semibold ${
-        netCashProfit < 0 ? "text-red-400" : "text-green-400"
-      }`}>
-        {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
-      </p>
-    </div>
+          {profit === 0 &&
+            "Break-even"}
+        </p>
 
-    <p className="text-xs opacity-70">
-      {netCashProfit < 0 ? "Loss" : "Cash Profit"}
-    </p>
+        {/* NET CASH */}
+        <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
 
-  </div>
+          <div>
+            <p className="text-xs opacity-70">
+              Net Cash Profit
+            </p>
 
-</div>
+            <p
+              className={`text-lg font-semibold ${
+                netCashProfit < 0
+                  ? "text-red-400"
+                  : "text-green-400"
+              }`}
+            >
+              {formatCurrency(
+                netCashProfit,
+                currencyCode,
+                currencySymbol
+              )}
+            </p>
+          </div>
+
+          <p className="text-xs opacity-70">
+            {netCashProfit < 0
+              ? "Loss"
+              : "Cash Profit"}
+          </p>
+
+        </div>
+
+      </div>
 
       {/* GRID */}
       <div className="grid grid-cols-2 gap-3">
 
         <div className="bg-white p-3 rounded-xl shadow-sm">
-          <p className="text-sm font-semibold text-[#0d1b3e]">Sales</p>
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Sales
+          </p>
+
           <p className="text-lg font-bold mt-1">
-            {formatCurrency(data.sales, currencyCode, currencySymbol)}
+            {formatCurrency(
+              data.sales,
+              currencyCode,
+              currencySymbol
+            )}
           </p>
         </div>
 
         <div className="bg-white p-3 rounded-xl shadow-sm">
-          <p className="text-sm font-semibold text-[#0d1b3e]">Expenses</p>
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Expenses
+          </p>
+
           <p className="text-lg font-bold mt-1">
-            {formatCurrency(data.expenses, currencyCode, currencySymbol)}
+            {formatCurrency(
+              data.expenses,
+              currencyCode,
+              currencySymbol
+            )}
           </p>
         </div>
 
         <div className="bg-white p-3 rounded-xl shadow-sm">
-          <p className="text-sm font-semibold text-[#0d1b3e]">Production</p>
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Production
+          </p>
+
           <p className="text-lg font-bold mt-1">
             {data.production} bags
           </p>
         </div>
 
         <div className="bg-white p-3 rounded-xl shadow-sm">
-          <p className="text-sm font-semibold text-[#0d1b3e]">Debt</p>
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Debt
+          </p>
+
           <p className="text-lg font-bold text-red-600 mt-1">
-            {formatCurrency(data.debt, currencyCode, currencySymbol)}
+            {formatCurrency(
+              data.debt,
+              currencyCode,
+              currencySymbol
+            )}
           </p>
         </div>
 
       </div>
 
-      {/* 🔒 SHARE BUTTONS */}
+      {/* SHARE */}
       {isPremium ? (
         <div className="grid grid-cols-2 gap-3">
+
           <button
-            onClick={handleWhatsApp}
+            onClick={
+              handleWhatsApp
+            }
             className="w-full h-11 bg-green-600 text-white rounded-lg font-semibold"
           >
             Share WhatsApp
@@ -332,18 +554,25 @@ Generated via AquaOps`
           >
             Share Email
           </button>
+
         </div>
+
       ) : (
         <div className="bg-white p-4 rounded-xl shadow-sm text-center space-y-2">
+
           <p className="text-sm font-semibold text-[#0d1b3e]">
             🔒 Premium Feature
           </p>
+
           <p className="text-xs text-gray-500">
-            Upgrade to unlock reports & history
+            Upgrade to unlock
+            reports & history
           </p>
+
           <button className="bg-black text-white px-4 py-2 rounded-lg text-sm">
             Upgrade
           </button>
+
         </div>
       )}
 

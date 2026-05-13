@@ -18,6 +18,7 @@ import { AccountScreen } from "@/components/screens/account"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
+import { HistoryScreen } from "@/components/screens/history"
 
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -111,15 +112,24 @@ export default function WaterFactoryApp() {
     if (activeTab === "sales") return <Sales />
     if (activeTab === "expenses") return <Expenses />
     if (activeTab === "debts") return <Debts />
-    if (activeTab === "reports") return <Reports />
+    if (activeTab === "reports") {
+  return (
+    <Reports
+      setActiveTab={setActiveTab}
+    />
+  )
+}
     if (activeTab === "loans") return <Loans />
     if (activeTab === "bank") return <Bank />
     if (activeTab === "account") return <AccountScreen />
+    if (activeTab === "history") {
+     return <HistoryScreen /> 
+}
     if (activeTab === "admin-subscriptions") {
-  return <AdminSubscriptions />
+     return <AdminSubscriptions />
 }
 
-    return <Dashboard setActiveTab={setActiveTab} />
+     return <Dashboard setActiveTab={setActiveTab} />
   }
 
   // MAIN APP
