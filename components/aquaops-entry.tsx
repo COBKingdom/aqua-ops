@@ -177,74 +177,96 @@ export function AquaOpsEntry() {
 
         </div>
 
-        {/* FEATURE CARDS */}
-        <div className="space-y-3">
+{/* FEATURE CARDS */}
+<div className="space-y-3">
 
-          <div className="bg-[#0d1b3e] text-white rounded-3xl p-4 shadow-sm">
+  {/* HERO STRIP */}
+  <div className="bg-[#0d1b3e] text-white rounded-3xl p-4 shadow-sm">
 
-            <p className="text-sm opacity-70">
-              AquaOps
-            </p>
+    <p className="text-sm opacity-70">
+      AquaOps
+    </p>
 
-            <h2 className="text-lg font-semibold mt-1 leading-snug">
-              Built for water factories to manage daily operations from anywhere.
-            </h2>
+    <h2 className="text-lg font-semibold mt-1 leading-snug">
+      Built for water factories to manage daily operations from anywhere.
+    </h2>
 
-          </div>
+  </div>
 
-          <div className="grid grid-cols-2 gap-3">
+  {/* COMPACT FEATURES */}
+  <div className="grid grid-cols-2 gap-2">
 
-            <div className="bg-white rounded-2xl p-3 shadow-sm">
-              <Wallet className="text-blue-600 mb-2" />
+    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
+      <Wallet
+        size={18}
+        className="text-blue-600"
+      />
 
-              <p className="font-medium">
-                Expenses
-              </p>
+      <div>
+        <p className="text-sm font-medium">
+          Expenses
+        </p>
 
-              <p className="text-xs text-gray-500 mt-1">
-                Track operational costs
-              </p>
-            </div>
+        <p className="text-[11px] text-gray-500">
+          Track costs
+        </p>
+      </div>
+    </div>
 
-            <div className="bg-white rounded-2xl p-3 shadow-sm">
-              <BarChart3 className="text-blue-600 mb-2" />
+    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
+      <BarChart3
+        size={18}
+        className="text-blue-600"
+      />
 
-              <p className="font-medium">
-                Reports
-              </p>
+      <div>
+        <p className="text-sm font-medium">
+          Reports
+        </p>
 
-              <p className="text-xs text-gray-500 mt-1">
-                Understand profitability
-              </p>
-            </div>
+        <p className="text-[11px] text-gray-500">
+          Profit insights
+        </p>
+      </div>
+    </div>
 
-            <div className="bg-white rounded-2xl p-3 shadow-sm">
-              <Factory className="text-blue-600 mb-2" />
+    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
+      <Factory
+        size={18}
+        className="text-blue-600"
+      />
 
-              <p className="font-medium">
-                Production
-              </p>
+      <div>
+        <p className="text-sm font-medium">
+          Production
+        </p>
 
-              <p className="text-xs text-gray-500 mt-1">
-                Monitor factory output
-              </p>
-            </div>
+        <p className="text-[11px] text-gray-500">
+          Factory output
+        </p>
+      </div>
+    </div>
 
-            <div className="bg-white rounded-2xl p-3 shadow-sm">
-              <Droplets className="text-blue-600 mb-2" />
+    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
+      <Droplets
+        size={18}
+        className="text-blue-600"
+      />
 
-              <p className="font-medium">
-                Debt Tracking
-              </p>
+      <div>
+        <p className="text-sm font-medium">
+          Debts
+        </p>
 
-              <p className="text-xs text-gray-500 mt-1">
-                Reduce customer debt
-              </p>
-            </div>
+        <p className="text-[11px] text-gray-500">
+          Reduce debt
+        </p>
+      </div>
+    </div>
 
-          </div>
+  </div>
 
-        </div>
+</div>
 
         {/* AUTH CARD */}
         <div className="bg-white rounded-3xl p-4 shadow-sm space-y-3">
