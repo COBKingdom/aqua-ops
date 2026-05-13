@@ -133,40 +133,41 @@ export function AquaOpsEntry() {
     <div className="min-h-screen bg-[#eef0f5]">
 
       {/* HERO */}
-      <div className="max-w-md mx-auto px-5 pt-10 pb-24 space-y-8">
+      <div className="max-w-md mx-auto px-4 pt-5 pb-16 space-y-5">
 
         {/* BRAND */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-3">
 
           <div className="flex justify-center">
             <img
               src="/icon-192.png"
               alt="AquaOps"
-              className="w-20 h-20 rounded-3xl shadow-sm"
+              className="w-16 h-16 rounded-2xl shadow-sm"
             />
           </div>
 
           <div>
-            <h1 className="text-4xl font-bold text-[#0d1b3e] leading-tight">
+            <h1 className="text-3xl sm:text-4xl font-bold text-[#0d1b3e] leading-tight">
               Stop guessing your business numbers
             </h1>
-            <div className="flex justify-center mt-4">
-  <svg
-    width="90"
-    height="8"
-    viewBox="0 0 120 12"
-  >
-    <path
-      d="M4 8 Q60 0 116 8"
-      stroke="#f5a623"
-      strokeWidth="2"
-      fill="none"
-      strokeLinecap="round"
-    />
-  </svg>
-</div>
 
-            <p className="text-gray-500 mt-4 text-lg">
+            <div className="flex justify-center mt-3">
+              <svg
+                width="90"
+                height="8"
+                viewBox="0 0 120 12"
+              >
+                <path
+                  d="M4 8 Q60 0 116 8"
+                  stroke="#f5a623"
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+
+            <p className="text-gray-500 mt-3 text-base leading-relaxed">
               Track your production,
               sales, expenses, debts and
               profit in one operational
@@ -177,22 +178,24 @@ export function AquaOpsEntry() {
         </div>
 
         {/* FEATURE CARDS */}
-        <div className="space-y-4">
+        <div className="space-y-3">
 
-          <div className="bg-[#0d1b3e] text-white rounded-3xl p-5 shadow-sm">
+          <div className="bg-[#0d1b3e] text-white rounded-3xl p-4 shadow-sm">
+
             <p className="text-sm opacity-70">
               AquaOps
             </p>
 
-        <h2 className="text-xl font-semibold mt-1">
-            Built for water factories to manage daily operations from anywhere.
-        </h2>
+            <h2 className="text-lg font-semibold mt-1 leading-snug">
+              Built for water factories to manage daily operations from anywhere.
+            </h2>
+
           </div>
 
           <div className="grid grid-cols-2 gap-3">
 
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <Wallet className="text-blue-600 mb-3" />
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
+              <Wallet className="text-blue-600 mb-2" />
 
               <p className="font-medium">
                 Expenses
@@ -203,8 +206,8 @@ export function AquaOpsEntry() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <BarChart3 className="text-blue-600 mb-3" />
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
+              <BarChart3 className="text-blue-600 mb-2" />
 
               <p className="font-medium">
                 Reports
@@ -215,8 +218,8 @@ export function AquaOpsEntry() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <Factory className="text-blue-600 mb-3" />
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
+              <Factory className="text-blue-600 mb-2" />
 
               <p className="font-medium">
                 Production
@@ -227,8 +230,8 @@ export function AquaOpsEntry() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <Droplets className="text-blue-600 mb-3" />
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
+              <Droplets className="text-blue-600 mb-2" />
 
               <p className="font-medium">
                 Debt Tracking
@@ -244,7 +247,7 @@ export function AquaOpsEntry() {
         </div>
 
         {/* AUTH CARD */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl p-4 shadow-sm space-y-3">
 
           <div>
             <h2 className="text-2xl font-bold text-[#0d1b3e]">
