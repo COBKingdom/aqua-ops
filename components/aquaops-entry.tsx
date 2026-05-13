@@ -49,7 +49,7 @@ export function AquaOpsEntry() {
           return
         }
 
-        router.refresh()
+        window.location.href = "/aquaops"
 
         return
       }
