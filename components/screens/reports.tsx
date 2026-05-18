@@ -22,20 +22,21 @@ export function Reports({
     useState<any>({
       sales: 0,
       costs: 0,
-      production: 0,
       debt: 0,
-      stock: 0,
 
       materialCost: 0,
       productionCost: 0,
       otherExpense: 0,
+
+      sachetProduction: 0,
+      bottleProduction: 0,
+
+      sachetStock: 0,
+      bottleStock: 0,
     })
 
   const [period, setPeriod] =
     useState("today")
-
-  const [includeHistory] =
-    useState(false)
 
   const [isPremium, setIsPremium] =
     useState(false)
@@ -45,15 +46,6 @@ export function Reports({
 
   const [currencySymbol, setCurrencySymbol] =
     useState("₦")
-
-  const [salesData, setSalesData] =
-    useState<any[]>([])
-
-  const [expenseData, setExpenseData] =
-    useState<any[]>([])
-
-  const [productionData, setProductionData] =
-    useState<any[]>([])
 
   // PREMIUM STATUS
   useEffect(() => {
@@ -163,16 +155,6 @@ export function Reports({
           )
           .gt("balance", 0)
 
-      setSalesData(sales || [])
-
-      setExpenseData(
-        expenses || []
-      )
-
-      setProductionData(
-        production || []
-      )
-
       const totalSales =
         sales?.reduce(
           (s, i) =>
@@ -191,16 +173,6 @@ export function Reports({
           0
         ) || 0
 
-      const totalProduction =
-        production?.reduce(
-          (s, i) =>
-            s +
-            Number(
-              i.bags_produced || 0
-            ),
-          0
-        ) || 0
-
       const totalDebt =
         debts?.reduce(
           (s, i) =>
@@ -210,20 +182,6 @@ export function Reports({
             ),
           0
         ) || 0
-
-      const totalSoldBags =
-        sales?.reduce(
-          (s, i) =>
-            s +
-            Number(
-              i.bags_sold || 0
-            ),
-          0
-        ) || 0
-
-      const availableStock =
-        totalProduction -
-        totalSoldBags
 
       // COST BREAKDOWN
       const materialCost =
@@ -268,18 +226,97 @@ export function Reports({
             0
           ) || 0
 
+      // SACHET PRODUCTION
+      const sachetProduction =
+        production
+          ?.filter(
+            (p) =>
+              p.product_type ===
+              "sachet"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(
+                i.bags_produced || 0
+              ),
+            0
+          ) || 0
+
+      // BOTTLE PRODUCTION
+      const bottleProduction =
+        production
+          ?.filter(
+            (p) =>
+              p.product_type ===
+              "bottle"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(
+                i.bags_produced || 0
+              ),
+            0
+          ) || 0
+
+      // SACHET SOLD
+      const sachetSold =
+        sales
+          ?.filter(
+            (s) =>
+              s.product_type ===
+              "sachet"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(
+                i.bags_sold || 0
+              ),
+            0
+          ) || 0
+
+      // BOTTLE SOLD
+      const bottleSold =
+        sales
+          ?.filter(
+            (s) =>
+              s.product_type ===
+              "bottle"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(
+                i.bags_sold || 0
+              ),
+            0
+          ) || 0
+
+      // STOCK
+      const sachetStock =
+        sachetProduction -
+        sachetSold
+
+      const bottleStock =
+        bottleProduction -
+        bottleSold
+
       setData({
         sales: totalSales,
         costs: totalCosts,
-        production:
-          totalProduction,
         debt: totalDebt,
-        stock:
-          availableStock,
 
         materialCost,
         productionCost,
         otherExpense,
+
+        sachetProduction,
+        bottleProduction,
+
+        sachetStock,
+        bottleStock,
       })
 
     } catch (error) {
@@ -336,11 +373,17 @@ Total: ${formatCurrency(
         currencySymbol
       )}
 
-📦 Operations
-Production: ${data.production}
+📦 Sachet Production
+${data.sachetProduction} bags
 
-📦 Available Stock
-${data.stock}
+📦 Sachet Stock
+${data.sachetStock} bags
+
+📦 Bottle Production
+${data.bottleProduction} crates
+
+📦 Bottle Stock
+${data.bottleStock} crates
 
 ⚠️ Debt Exposure
 ${formatCurrency(
@@ -398,8 +441,7 @@ ${formatCurrency(
         </h1>
 
         <p className="text-xs text-gray-500">
-          Operational intelligence
-          summary
+          Operational intelligence summary
         </p>
       </div>
 
@@ -540,32 +582,52 @@ ${formatCurrency(
 
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
-            Production
+            Sachet Production
           </p>
 
           <p className="text-lg font-bold mt-1">
-            {data.production}
+            {data.sachetProduction} bags
           </p>
         </div>
 
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
-            Available Stock
+            Sachet Stock
           </p>
 
           <p className="text-lg font-bold mt-1">
-            {data.stock}
+            {data.sachetStock} bags
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Bottle Production
+          </p>
+
+          <p className="text-lg font-bold mt-1">
+            {data.bottleProduction} crates
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Bottle Stock
+          </p>
+
+          <p className="text-lg font-bold mt-1">
+            {data.bottleStock} crates
           </p>
         </div>
 
       </div>
 
       {/* COST BREAKDOWN */}
-     <div className="bg-white border border-blue-100 rounded-xl shadow-sm p-4 space-y-3">
+      <div className="bg-white border border-blue-100 rounded-xl shadow-sm p-4 space-y-3">
 
-      <h2 className="font-semibold text-[#2563eb]">
-  Cost Breakdown
-</h2>
+        <h2 className="font-semibold text-[#2563eb]">
+          Cost Breakdown
+        </h2>
 
         <div className="flex justify-between text-sm">
           <span>
@@ -655,8 +717,7 @@ ${formatCurrency(
           </p>
 
           <p className="text-xs text-gray-500">
-            Upgrade to unlock
-            reports & history
+            Upgrade to unlock reports & history
           </p>
 
           <button className="bg-black text-white px-4 py-2 rounded-lg text-sm">

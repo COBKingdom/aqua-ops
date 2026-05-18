@@ -1,101 +1,172 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+
 import { supabase } from "@/lib/supabase"
+
+import { getFactoryId } from "@/lib/factory"
+
 import {
-  getFactoryId,
-  getFactoryCurrency,
-} from "@/lib/factory"
-import { formatCurrency } from "@/lib/format"
-import { ShoppingCart } from "lucide-react"
+  ShoppingCart,
+} from "lucide-react"
 
 export function Sales() {
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] =
+    useState(false)
 
-  const [currencyCode, setCurrencyCode] = useState("NGN")
-  const [currencySymbol, setCurrencySymbol] = useState("₦")
+  const [loading, setLoading] =
+    useState(false)
 
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
-    customerName: "",
-    bagsSold: "",
-    pricePerBag: "",
-    amountPaid: "",
-  })
+  const [form, setForm] =
+    useState({
+      date: new Date()
+        .toISOString()
+        .split("T")[0],
 
-  useEffect(() => {
-    const loadCurrency = async () => {
-      const currency = await getFactoryCurrency()
+      customerName: "",
 
-      setCurrencyCode(currency.code)
-      setCurrencySymbol(currency.symbol)
-    }
+      productType: "sachet",
 
-    loadCurrency()
-  }, [])
+      bagsSold: "",
 
-  const total =
-    Number(form.bagsSold || 0) * Number(form.pricePerBag || 0)
+      pricePerBag: "",
+
+      amountPaid: "",
+
+      notes: "",
+    })
+
+  const isBottle =
+    form.productType === "bottle"
+
+  const quantityLabel = isBottle
+    ? "Crates Sold"
+    : "Bags Sold"
+
+  const priceLabel = isBottle
+    ? "Price per Crate"
+    : "Price per Bag"
+
+  // LIVE CALCULATIONS
+  const totalAmount =
+    Number(form.bagsSold || 0) *
+    Number(form.pricePerBag || 0)
 
   const balance =
-    total - Number(form.amountPaid || 0)
+    totalAmount -
+    Number(form.amountPaid || 0)
 
-  const handleSubmit = async () => {
-    const factoryId = getFactoryId()
+  const handleSubmit =
+    async () => {
+      try {
+        setLoading(true)
 
-    if (!factoryId) {
-      alert("Factory not found")
-      return
+        const factoryId =
+          getFactoryId()
+
+        if (!factoryId) {
+          alert(
+            "Factory not found"
+          )
+
+          return
+        }
+
+        if (
+  !form.customerName ||
+  !form.bagsSold ||
+  !form.pricePerBag ||
+  form.amountPaid === ""
+        ) {
+          alert(
+            "Please complete required fields"
+          )
+
+          return
+        }
+
+        const { error } =
+          await supabase
+            .from("sales")
+            .insert([
+              {
+                factory_id:
+                  factoryId,
+
+                date: form.date,
+
+                customer_name:
+                  form.customerName,
+
+                product_type:
+                  form.productType,
+
+                bags_sold:
+                  Number(
+                    form.bagsSold
+                  ),
+
+                price_per_bag:
+                  Number(
+                    form.pricePerBag
+                  ),
+
+                total_amount:
+                  totalAmount,
+
+                amount_paid:
+                  Number(
+                    form.amountPaid || 0
+                  ),
+
+                balance,
+              },
+            ])
+
+        if (error) {
+          console.error(error)
+
+          alert(
+            "Failed to save sale"
+          )
+
+          return
+        }
+
+        // SUCCESS
+        setSaved(true)
+
+        setTimeout(() => {
+          setSaved(false)
+
+          setForm({
+            ...form,
+
+            customerName:
+              "",
+
+            bagsSold: "",
+
+            pricePerBag:
+              "",
+
+            amountPaid: "",
+
+            notes: "",
+          })
+        }, 1500)
+
+      } catch (error) {
+        console.error(error)
+
+        alert(
+          "Something went wrong"
+        )
+
+      } finally {
+        setLoading(false)
+      }
     }
-
-    if (
-      !form.customerName ||
-      !form.bagsSold ||
-      !form.pricePerBag ||
-      !form.amountPaid
-    ) {
-      alert("Please fill all fields")
-      return
-    }
-
-    if (Number(form.amountPaid) > total) {
-      alert("Amount paid cannot exceed total")
-      return
-    }
-
-    const { error } = await supabase.from("sales").insert([
-      {
-        factory_id: factoryId,
-        date: form.date,
-        customer_name: form.customerName,
-        bags_sold: Number(form.bagsSold),
-        price_per_bag: Number(form.pricePerBag),
-        total_amount: total,
-        amount_paid: Number(form.amountPaid),
-        balance: balance,
-      },
-    ])
-
-    if (error) {
-      console.error(error)
-      alert("Error saving sale")
-      return
-    }
-
-    setSaved(true)
-
-    setTimeout(() => {
-      setSaved(false)
-
-      setForm({
-        ...form,
-        customerName: "",
-        bagsSold: "",
-        pricePerBag: "",
-        amountPaid: "",
-      })
-    }, 1500)
-  }
 
   return (
     <div className="space-y-4 p-3 pb-20">
@@ -119,7 +190,11 @@ export function Sales() {
           type="date"
           value={form.date}
           onChange={(e) =>
-            setForm({ ...form, date: e.target.value })
+            setForm({
+              ...form,
+              date:
+                e.target.value,
+            })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
@@ -128,25 +203,76 @@ export function Sales() {
         <input
           type="text"
           placeholder="Customer Name"
-          value={form.customerName}
+          value={
+            form.customerName
+          }
           onChange={(e) =>
             setForm({
               ...form,
-              customerName: e.target.value,
+              customerName:
+                e.target.value,
             })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
-        {/* BAGS */}
+        {/* PRODUCT TYPE */}
+        <div className="grid grid-cols-2 gap-2">
+
+          <button
+            type="button"
+            onClick={() =>
+              setForm({
+                ...form,
+                productType:
+                  "sachet",
+              })
+            }
+            className={`h-11 rounded-lg text-sm font-medium transition ${
+              form.productType ===
+              "sachet"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
+          >
+            Sachet
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setForm({
+                ...form,
+                productType:
+                  "bottle",
+              })
+            }
+            className={`h-11 rounded-lg text-sm font-medium transition ${
+              form.productType ===
+              "bottle"
+                ? "bg-[#2563eb] text-white"
+                : "bg-blue-50 text-[#2563eb]"
+            }`}
+          >
+            Bottle
+          </button>
+
+        </div>
+
+        {/* QUANTITY */}
         <input
           type="number"
-          placeholder="Bags Sold"
-          value={form.bagsSold}
+          placeholder={
+            quantityLabel
+          }
+          value={
+            form.bagsSold
+          }
           onChange={(e) =>
             setForm({
               ...form,
-              bagsSold: e.target.value,
+              bagsSold:
+                e.target.value,
             })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
@@ -155,12 +281,17 @@ export function Sales() {
         {/* PRICE */}
         <input
           type="number"
-          placeholder="Price per Bag"
-          value={form.pricePerBag}
+          placeholder={
+            priceLabel
+          }
+          value={
+            form.pricePerBag
+          }
           onChange={(e) =>
             setForm({
               ...form,
-              pricePerBag: e.target.value,
+              pricePerBag:
+                e.target.value,
             })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
@@ -170,55 +301,91 @@ export function Sales() {
         <input
           type="number"
           placeholder="Amount Paid"
-          value={form.amountPaid}
+          value={
+            form.amountPaid
+          }
           onChange={(e) =>
             setForm({
               ...form,
-              amountPaid: e.target.value,
+              amountPaid:
+                e.target.value,
             })
           }
           className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
         />
 
-        {/* LIVE PREVIEW */}
-        <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
+        {/* LIVE SUMMARY */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-2">
 
-          <p>
-            Total:{" "}
-            {formatCurrency(
-              total,
-              currencyCode,
-              currencySymbol
-            )}
-          </p>
+          <div className="flex justify-between text-sm">
+            <span>
+              Total Amount
+            </span>
 
-          <p
-            className={
-              balance > 0
-                ? "text-red-600 font-medium"
-                : "text-green-600 font-medium"
-            }
-          >
-            Balance:{" "}
-            {formatCurrency(
-              balance,
-              currencyCode,
-              currencySymbol
-            )}
-          </p>
+            <span className="font-semibold">
+              ₦{totalAmount.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex justify-between text-sm">
+            <span>
+              Amount Paid
+            </span>
+
+            <span className="font-semibold">
+              ₦{Number(
+                form.amountPaid || 0
+              ).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex justify-between text-sm">
+            <span>
+              Balance
+            </span>
+
+            <span
+              className={`font-semibold ${
+                balance > 0
+                  ? "text-red-600"
+                  : "text-green-600"
+              }`}
+            >
+              ₦{balance.toLocaleString()}
+            </span>
+          </div>
 
         </div>
+
+        {/* NOTES */}
+        <textarea
+          placeholder="Notes"
+          value={form.notes}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              notes:
+                e.target.value,
+            })
+          }
+          className="w-full border border-gray-200 rounded-lg px-3 py-3 text-sm min-h-[90px]"
+        />
 
         {/* SAVE BUTTON */}
         <button
           onClick={handleSubmit}
+          disabled={loading}
           className={`w-full h-11 rounded-lg text-sm font-semibold transition active:scale-[0.97] ${
             saved
               ? "bg-green-600 text-white"
               : "bg-[#2563eb] text-white"
           }`}
         >
-          {saved ? "Saved" : "Save Sale"}
+          {loading
+            ? "Saving..."
+            : saved
+            ? "Saved Successfully"
+            : "Save Sale"}
         </button>
 
       </div>
@@ -230,7 +397,9 @@ export function Sales() {
           <ShoppingCart size={16} />
 
           <span>
-            Track sales and customer payments
+            Track customer sales,
+            debts and product
+            movement accurately
           </span>
         </div>
 

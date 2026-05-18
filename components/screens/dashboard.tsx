@@ -39,13 +39,18 @@ export function Dashboard({
   const [period, setPeriod] =
     useState("today")
 
-  const [data, setData] = useState({
-    sales: 0,
-    costs: 0,
-    production: 0,
-    debt: 0,
-    stock: 0,
-  })
+const [data, setData] = useState({
+  sales: 0,
+  costs: 0,
+  production: 0,
+  debt: 0,
+
+  sachetProduction: 0,
+  bottleProduction: 0,
+
+  sachetStock: 0,
+  bottleStock: 0,
+})
 
   const getDateFilter = () => {
     const now = new Date()
@@ -146,47 +151,107 @@ export function Dashboard({
             0
           ) || 0
 
-        const totalProduction =
-          production?.reduce(
-            (s, i) =>
-              s +
-              Number(
-                i.bags_produced || 0
-              ),
-            0
-          ) || 0
-
         const totalDebt =
-          debts?.reduce(
-            (s, i) =>
-              s +
-              Number(
-                i.balance || 0
-              ),
-            0
-          ) || 0
-
-const totalSoldBags =
-  sales?.reduce(
+  debts?.reduce(
     (s, i) =>
       s +
       Number(
-        i.bags_sold || 0
+        i.balance || 0
       ),
     0
   ) || 0
+// SACHET PRODUCTION
+const sachetProduction =
+  production
+    ?.filter(
+      (p) =>
+        p.product_type ===
+        "sachet"
+    )
+    .reduce(
+      (s, i) =>
+        s +
+        Number(
+          i.bags_produced || 0
+        ),
+      0
+    ) || 0
 
-        const availableStock =
-          totalProduction -
-          totalSoldBags
+// BOTTLE PRODUCTION
+const bottleProduction =
+  production
+    ?.filter(
+      (p) =>
+        p.product_type ===
+        "bottle"
+    )
+    .reduce(
+      (s, i) =>
+        s +
+        Number(
+          i.bags_produced || 0
+        ),
+      0
+    ) || 0
 
-        setData({
-          sales: totalSales,
-          costs: totalCosts,
-          production: totalProduction,
-          debt: totalDebt,
-          stock: availableStock,
-        })
+// SACHET SOLD
+const sachetSold =
+  sales
+    ?.filter(
+      (s) =>
+        s.product_type ===
+        "sachet"
+    )
+    .reduce(
+      (s, i) =>
+        s +
+        Number(
+          i.bags_sold || 0
+        ),
+      0
+    ) || 0
+
+// BOTTLE SOLD
+const bottleSold =
+  sales
+    ?.filter(
+      (s) =>
+        s.product_type ===
+        "bottle"
+    )
+    .reduce(
+      (s, i) =>
+        s +
+        Number(
+          i.bags_sold || 0
+        ),
+      0
+    ) || 0
+
+// STOCK
+const sachetStock =
+  sachetProduction -
+  sachetSold
+
+const bottleStock =
+  bottleProduction -
+  bottleSold
+
+setData({
+  sales: totalSales,
+  costs: totalCosts,
+  debt: totalDebt,
+
+  production:
+    sachetProduction +
+    bottleProduction,
+
+  sachetProduction,
+  bottleProduction,
+
+  sachetStock,
+  bottleStock,
+})
 
         const { data: factory } =
           await supabase
@@ -568,22 +633,37 @@ const totalSoldBags =
           </span>
         </div>
 
-        <div className="flex justify-between">
-          <span>Production</span>
+<div className="flex justify-between">
+  <span>Sachet Production</span>
 
-          <span>
-            {data.production} bags
-          </span>
-        </div>
+  <span>
+    {data.sachetProduction} bags
+  </span>
+</div>
 
-        <div className="flex justify-between">
-          <span>Available Stock</span>
+<div className="flex justify-between">
+  <span>Sachet Stock</span>
 
-          <span>
-            {data.stock} bags
-          </span>
-        </div>
+  <span>
+    {data.sachetStock} bags
+  </span>
+</div>
 
+<div className="flex justify-between">
+  <span>Bottle Production</span>
+
+  <span>
+    {data.bottleProduction} crates
+  </span>
+</div>
+
+<div className="flex justify-between">
+  <span>Bottle Stock</span>
+
+  <span>
+    {data.bottleStock} crates
+  </span>
+</div>
       </div>
 
       {/* PRO INSIGHTS */}
