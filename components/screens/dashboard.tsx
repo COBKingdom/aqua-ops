@@ -41,9 +41,10 @@ export function Dashboard({
 
   const [data, setData] = useState({
     sales: 0,
-    expenses: 0,
+    costs: 0,
     production: 0,
     debt: 0,
+    stock: 0,
   })
 
   const getDateFilter = () => {
@@ -93,7 +94,7 @@ export function Dashboard({
             )
             .gte("date", dateFilter)
 
-        const { data: expenses } =
+        const { data: costs } =
           await supabase
             .from("expenses")
             .select("*")
@@ -101,7 +102,10 @@ export function Dashboard({
               "factory_id",
               factoryId
             )
-            .gte("date", dateFilter)
+          .gte(
+  "created_at",
+  dateFilter
+)
 
         const {
           data: production,
@@ -134,8 +138,8 @@ export function Dashboard({
             0
           ) || 0
 
-        const totalExpenses =
-          expenses?.reduce(
+        const totalCosts =
+          costs?.reduce(
             (s, i) =>
               s +
               Number(i.amount || 0),
@@ -162,11 +166,26 @@ export function Dashboard({
             0
           ) || 0
 
+const totalSoldBags =
+  sales?.reduce(
+    (s, i) =>
+      s +
+      Number(
+        i.bags_sold || 0
+      ),
+    0
+  ) || 0
+
+        const availableStock =
+          totalProduction -
+          totalSoldBags
+
         setData({
           sales: totalSales,
-          expenses: totalExpenses,
+          costs: totalCosts,
           production: totalProduction,
           debt: totalDebt,
+          stock: availableStock,
         })
 
         const { data: factory } =
@@ -224,7 +243,7 @@ export function Dashboard({
   }, [])
 
   const profit =
-    data.sales - data.expenses
+    data.sales - data.costs
 
   const netCashProfit =
     profit - data.debt
@@ -232,7 +251,7 @@ export function Dashboard({
   const { insights, alerts } =
     generateInsights({
       sales: data.sales,
-      expenses: data.expenses,
+      expenses: data.costs,
       debt: data.debt,
       cash: profit,
     })
@@ -256,14 +275,14 @@ export function Dashboard({
             factory management.
           </p>
 
-<a
-  href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support%2C%0A%0AMy%20AquaOps%20trial%20has%20expired%20and%20I%20would%20like%20to%20activate%20my%20subscription.%0A%0APlease%20send%20payment%20details."
-  target="_blank"
-  rel="noopener noreferrer"
-  className="inline-block bg-red-600 text-white text-sm px-4 py-2 rounded-lg"
->
-  Contact Support
-</a>
+          <a
+            href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support%2C%0A%0AMy%20AquaOps%20trial%20has%20expired%20and%20I%20would%20like%20to%20activate%20my%20subscription.%0A%0APlease%20send%20payment%20details."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-red-600 text-white text-sm px-4 py-2 rounded-lg"
+          >
+            Contact Support
+          </a>
 
         </div>
       )}
@@ -381,8 +400,7 @@ export function Dashboard({
       <div className="bg-[#0d1b3e] text-white rounded-2xl p-5 shadow-md">
 
         <p className="text-xs opacity-70">
-          {factoryName || "Factory"}{" "}
-          Overview
+          {factoryName || "Factory"} Overview
         </p>
 
         <p className="text-3xl font-bold mt-3">
@@ -422,12 +440,12 @@ export function Dashboard({
 
           <div>
             <p className="opacity-70">
-              Expenses
+              Operational Costs
             </p>
 
             <p className="font-semibold">
               {formatCurrency(
-                data.expenses,
+                data.costs,
                 currencyCode,
                 currencySymbol
               )}
@@ -436,7 +454,7 @@ export function Dashboard({
 
           <div>
             <p className="opacity-70">
-              Debt
+              Debt Exposure
             </p>
 
             <p className="font-semibold">
@@ -484,7 +502,7 @@ export function Dashboard({
           className="bg-blue-600 text-white p-3 rounded-xl flex gap-2"
         >
           <Wallet size={16} />
-          Add Expense
+          Add Cost
         </button>
 
         <button
@@ -539,7 +557,7 @@ export function Dashboard({
         </div>
 
         <div className="flex justify-between">
-          <span>Debt</span>
+          <span>Debt Exposure</span>
 
           <span className="text-red-600">
             {formatCurrency(
@@ -555,6 +573,14 @@ export function Dashboard({
 
           <span>
             {data.production} bags
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span>Available Stock</span>
+
+          <span>
+            {data.stock} bags
           </span>
         </div>
 

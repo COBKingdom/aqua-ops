@@ -1,189 +1,290 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+
 import { supabase } from "@/lib/supabase"
-import {
-  getFactoryId,
-  getFactoryCurrency,
-} from "@/lib/factory"
-import { formatCurrency } from "@/lib/format"
-import { Wallet } from "lucide-react"
+
+import { getFactoryId } from "@/lib/factory"
 
 export function Expenses() {
-  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] =
+    useState(false)
 
-  const [currencyCode, setCurrencyCode] = useState("NGN")
-  const [currencySymbol, setCurrencySymbol] = useState("₦")
+  const [saved, setSaved] =
+    useState(false)
 
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
-    category: "",
-    amount: "",
-    notes: "",
-  })
+  const [amount, setAmount] =
+    useState("")
 
-  useEffect(() => {
-    const loadCurrency = async () => {
-      const currency = await getFactoryCurrency()
+  const [notes, setNotes] =
+    useState("")
 
-      setCurrencyCode(currency.code)
-      setCurrencySymbol(currency.symbol)
-    }
+  const [costGroup, setCostGroup] =
+    useState("Material Cost")
 
-    loadCurrency()
-  }, [])
+  const [category, setCategory] =
+    useState("Nylon")
 
-  const handleSubmit = async () => {
-    const factoryId = getFactoryId()
+  const categoryOptions = {
+    "Material Cost": [
+      "Nylon",
+      "Packaging",
+      "Caps",
+      "Labels",
+      "Chemicals",
+      "Bottles",
+      "Cartons",
+      "Other Material",
+    ],
 
-    if (!factoryId) {
-      alert("Factory not found")
-      return
-    }
+    "Production Cost": [
+      "Diesel",
+      "Petrol",
+      "Electricity",
+      "Machine Repairs",
+      "Factory Labor",
+      "Generator",
+      "Maintenance",
+      "Water Treatment",
+      "Other Production",
+    ],
 
-    if (!form.amount || !form.category) {
-      alert("Please fill required fields")
-      return
-    }
+    "Other Expense": [
+      "Commission",
+      "Transport",
+      "Office Expense",
+      "Rent",
+      "Marketing",
+      "Internet",
+      "Staff Welfare",
+      "Miscellaneous",
+    ],
+  }
 
-    const { error } = await supabase.from("expenses").insert([
-      {
-        factory_id: factoryId,
-        date: form.date,
-        category: form.category,
-        amount: Number(form.amount),
-        notes: form.notes,
-      },
-    ])
+  const handleCostGroupChange = (
+    value: string
+  ) => {
+    setCostGroup(value)
 
-    if (error) {
+    const firstCategory =
+      categoryOptions[
+        value as keyof typeof categoryOptions
+      ][0]
+
+    setCategory(firstCategory)
+  }
+
+  const handleSave = async () => {
+    try {
+      setLoading(true)
+
+      const factoryId =
+        getFactoryId()
+
+      if (!factoryId) {
+        alert("Factory not found")
+        return
+      }
+
+      if (!amount) {
+        alert(
+          "Please enter amount"
+        )
+
+        return
+      }
+
+      const { error } =
+        await supabase
+          .from("expenses")
+          .insert({
+            factory_id: factoryId,
+
+            amount:
+              Number(amount),
+
+            notes,
+
+            cost_group:
+              costGroup,
+
+            category,
+          })
+
+      if (error) {
+        alert(error.message)
+        return
+      }
+
+      // RESET FORM
+      setAmount("")
+      setNotes("")
+
+      // SUCCESS STATE
+      setSaved(true)
+
+      setTimeout(() => {
+        setSaved(false)
+      }, 2000)
+
+    } catch (error) {
       console.error(error)
-      alert("Error saving expense")
-      return
+
+      alert(
+        "Failed to save entry"
+      )
+
+    } finally {
+      setLoading(false)
     }
-
-    setSaved(true)
-
-    setTimeout(() => {
-      setSaved(false)
-
-      setForm({
-        ...form,
-        category: "",
-        amount: "",
-        notes: "",
-      })
-    }, 1500)
   }
 
   return (
-    <div className="space-y-4 p-3 pb-20">
+    <div className="p-4 space-y-5 pb-24">
 
       {/* HEADER */}
       <div>
-        <h1 className="text-lg font-bold text-[#0d1b3e]">
-          Expenses
+        <h1 className="text-2xl font-bold">
+          Operational Costs
         </h1>
 
-        <p className="text-xs text-gray-500">
-          Record daily expenses
+        <p className="text-sm text-gray-500">
+          Track factory operational costs
         </p>
       </div>
 
-      {/* MAIN CARD */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
+      {/* FORM */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
 
-        {/* DATE */}
-        <input
-          type="date"
-          value={form.date}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              date: e.target.value,
-            })
-          }
-          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-        />
+        {/* COST GROUP */}
+        <div>
+          <label className="text-sm font-medium">
+            Cost Group
+          </label>
 
-        {/* AMOUNT */}
-        <input
-          type="number"
-          placeholder={`Amount (${currencySymbol})`}
-          value={form.amount}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              amount: e.target.value,
-            })
-          }
-          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-        />
+          <select
+            value={costGroup}
+            onChange={(e) =>
+              handleCostGroupChange(
+                e.target.value
+              )
+            }
+            className="w-full mt-2 p-4 rounded-2xl border border-gray-200 outline-none"
+          >
+            <option>
+              Material Cost
+            </option>
 
-        {/* LIVE PREVIEW */}
-        <div className="bg-gray-50 p-3 rounded-lg text-sm">
-          <p>
-            Expense Amount:{" "}
-            {formatCurrency(
-              Number(form.amount || 0),
-              currencyCode,
-              currencySymbol
-            )}
-          </p>
+            <option>
+              Production Cost
+            </option>
+
+            <option>
+              Other Expense
+            </option>
+
+          </select>
         </div>
 
         {/* CATEGORY */}
-        <input
-          type="text"
-          placeholder="Category (e.g. Diesel, Salary)"
-          value={form.category}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              category: e.target.value,
-            })
-          }
-          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-        />
+        <div>
+          <label className="text-sm font-medium">
+            Category
+          </label>
+
+          <select
+            value={category}
+            onChange={(e) =>
+              setCategory(
+                e.target.value
+              )
+            }
+            className="w-full mt-2 p-4 rounded-2xl border border-gray-200 outline-none"
+          >
+
+            {categoryOptions[
+              costGroup as keyof typeof categoryOptions
+            ].map((item) => (
+              <option
+                key={item}
+              >
+                {item}
+              </option>
+            ))}
+
+          </select>
+        </div>
+
+        {/* AMOUNT */}
+        <div>
+          <label className="text-sm font-medium">
+            Amount
+          </label>
+
+          <input
+            type="number"
+            placeholder="Enter amount"
+            value={amount}
+            onChange={(e) =>
+              setAmount(
+                e.target.value
+              )
+            }
+            className="w-full mt-2 p-4 rounded-2xl border border-gray-200 outline-none"
+          />
+        </div>
 
         {/* NOTES */}
-        <input
-          type="text"
-          placeholder="Notes (optional)"
-          value={form.notes}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              notes: e.target.value,
-            })
-          }
-          className="w-full h-11 border border-gray-200 rounded-lg px-3 text-sm"
-        />
+        <div>
+          <label className="text-sm font-medium">
+            Notes
+          </label>
+
+          <textarea
+            placeholder="Optional notes"
+            value={notes}
+            onChange={(e) =>
+              setNotes(
+                e.target.value
+              )
+            }
+            className="w-full mt-2 p-4 rounded-2xl border border-gray-200 outline-none min-h-[100px]"
+          />
+        </div>
 
         {/* SAVE BUTTON */}
         <button
-          onClick={handleSubmit}
-          className={`w-full h-11 rounded-lg text-sm font-semibold transition active:scale-[0.97] ${
+          onClick={handleSave}
+          disabled={loading}
+          className={`w-full py-4 rounded-2xl font-medium text-white transition ${
             saved
-              ? "bg-green-600 text-white"
-              : "bg-[#2563eb] text-white"
+              ? "bg-green-600"
+              : "bg-[#2563eb]"
           }`}
         >
-          {saved ? "Saved" : "Save Expense"}
+          {loading
+            ? "Saving..."
+            : saved
+            ? "Saved Successfully"
+            : "Save Cost Entry"}
         </button>
 
       </div>
 
       {/* INFO CARD */}
-      <div className="bg-blue-50 p-3 rounded-xl text-sm text-[#0d1b3e]">
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
 
-        <div className="flex items-center gap-2">
-          <Wallet size={16} />
+        <p className="text-sm font-semibold text-[#0d1b3e]">
+          Operational Cost Tracking
+        </p>
 
-          <span>
-            Track spending to stay profitable
-          </span>
-        </div>
+        <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+          AquaOps separates material costs,
+          production costs and operational
+          expenses to help factories better
+          understand profitability and
+          operational performance.
+        </p>
 
       </div>
 

@@ -18,12 +18,18 @@ export function Reports({
 }: {
   setActiveTab: (tab: string) => void
 }) {
-  const [data, setData] = useState<any>({
-    sales: 0,
-    expenses: 0,
-    production: 0,
-    debt: 0,
-  })
+  const [data, setData] =
+    useState<any>({
+      sales: 0,
+      costs: 0,
+      production: 0,
+      debt: 0,
+      stock: 0,
+
+      materialCost: 0,
+      productionCost: 0,
+      otherExpense: 0,
+    })
 
   const [period, setPeriod] =
     useState("today")
@@ -40,7 +46,6 @@ export function Reports({
   const [currencySymbol, setCurrencySymbol] =
     useState("₦")
 
-  // HISTORY DATA
   const [salesData, setSalesData] =
     useState<any[]>([])
 
@@ -50,7 +55,7 @@ export function Reports({
   const [productionData, setProductionData] =
     useState<any[]>([])
 
-  // LOAD PREMIUM STATUS
+  // PREMIUM STATUS
   useEffect(() => {
     const checkPremium =
       async () => {
@@ -102,6 +107,7 @@ export function Reports({
         await getFactoryCurrency()
 
       setCurrencyCode(currency.code)
+
       setCurrencySymbol(
         currency.symbol
       )
@@ -120,7 +126,7 @@ export function Reports({
           )
           .gte("date", dateFilter)
 
-      // EXPENSES
+      // COSTS
       const { data: expenses } =
         await supabase
           .from("expenses")
@@ -129,7 +135,10 @@ export function Reports({
             "factory_id",
             factoryId
           )
-          .gte("date", dateFilter)
+          .gte(
+            "created_at",
+            dateFilter
+          )
 
       // PRODUCTION
       const {
@@ -154,11 +163,12 @@ export function Reports({
           )
           .gt("balance", 0)
 
-      // STORE RAW DATA
       setSalesData(sales || [])
+
       setExpenseData(
         expenses || []
       )
+
       setProductionData(
         production || []
       )
@@ -173,7 +183,7 @@ export function Reports({
           0
         ) || 0
 
-      const totalExpenses =
+      const totalCosts =
         expenses?.reduce(
           (s, i) =>
             s +
@@ -201,12 +211,75 @@ export function Reports({
           0
         ) || 0
 
+      const totalSoldBags =
+        sales?.reduce(
+          (s, i) =>
+            s +
+            Number(
+              i.bags_sold || 0
+            ),
+          0
+        ) || 0
+
+      const availableStock =
+        totalProduction -
+        totalSoldBags
+
+      // COST BREAKDOWN
+      const materialCost =
+        expenses
+          ?.filter(
+            (e) =>
+              e.cost_group ===
+              "Material Cost"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(i.amount || 0),
+            0
+          ) || 0
+
+      const productionCost =
+        expenses
+          ?.filter(
+            (e) =>
+              e.cost_group ===
+              "Production Cost"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(i.amount || 0),
+            0
+          ) || 0
+
+      const otherExpense =
+        expenses
+          ?.filter(
+            (e) =>
+              e.cost_group ===
+              "Other Expense"
+          )
+          .reduce(
+            (s, i) =>
+              s +
+              Number(i.amount || 0),
+            0
+          ) || 0
+
       setData({
         sales: totalSales,
-        expenses: totalExpenses,
+        costs: totalCosts,
         production:
           totalProduction,
         debt: totalDebt,
+        stock:
+          availableStock,
+
+        materialCost,
+        productionCost,
+        otherExpense,
       })
 
     } catch (error) {
@@ -219,7 +292,7 @@ export function Reports({
   }, [period])
 
   const profit =
-    data.sales - data.expenses
+    data.sales - data.costs
 
   const netCashProfit =
     profit - data.debt
@@ -227,7 +300,7 @@ export function Reports({
   // REPORT GENERATOR
   const generateReportText =
     () => {
-      let text = `📊 BUSINESS REPORT — ${period.toUpperCase()}
+      let text = `📊 OPERATIONAL REPORT — ${period.toUpperCase()}
 
 ━━━━━━━━━━━━━━━━━━━
 
@@ -238,18 +311,39 @@ Sales: ${formatCurrency(
         currencySymbol
       )}
 
-💸 Expenses
+💸 Operational Costs
 Total: ${formatCurrency(
-        data.expenses,
+        data.costs,
+        currencyCode,
+        currencySymbol
+      )}
+
+• Material Cost: ${formatCurrency(
+        data.materialCost,
+        currencyCode,
+        currencySymbol
+      )}
+
+• Production Cost: ${formatCurrency(
+        data.productionCost,
+        currencyCode,
+        currencySymbol
+      )}
+
+• Other Expense: ${formatCurrency(
+        data.otherExpense,
         currencyCode,
         currencySymbol
       )}
 
 📦 Operations
-Production: ${data.production} bags
+Production: ${data.production}
 
-⚠️ Risk
-Outstanding Debt: ${formatCurrency(
+📦 Available Stock
+${data.stock}
+
+⚠️ Debt Exposure
+${formatCurrency(
         data.debt,
         currencyCode,
         currencySymbol
@@ -257,77 +351,13 @@ Outstanding Debt: ${formatCurrency(
 
 ━━━━━━━━━━━━━━━━━━━
 
-📈 Net Result: ${formatCurrency(
+📈 Net Result
+${formatCurrency(
         profit,
         currencyCode,
         currencySymbol
       )}
 `
-
-      if (
-        includeHistory &&
-        isPremium
-      ) {
-        text += `
-
-━━━━━━━━━━━━━━━━━━━
-📜 TRANSACTION HISTORY
-
-🧾 Sales:
-${
-  salesData.length === 0
-    ? "No sales"
-    : salesData
-        .map(
-          (s) =>
-            `- ${
-              s.customer_name ||
-              "Customer"
-            }: ${formatCurrency(
-              s.total_amount,
-              currencyCode,
-              currencySymbol
-            )}`
-        )
-        .join("\n")
-}
-
-💸 Expenses:
-${
-  expenseData.length === 0
-    ? "No expenses"
-    : expenseData
-        .map(
-          (e) =>
-            `- ${
-              e.category
-            }: ${formatCurrency(
-              e.amount,
-              currencyCode,
-              currencySymbol
-            )}`
-        )
-        .join("\n")
-}
-
-📦 Production:
-${
-  productionData.length === 0
-    ? "No production"
-    : productionData
-        .map(
-          (p) =>
-            `- ${p.bags_produced} bags`
-        )
-        .join("\n")
-}
-`
-      }
-
-      text += `
-
-━━━━━━━━━━━━━━━━━━━
-Generated via AquaOps`
 
       return text
     }
@@ -347,7 +377,7 @@ Generated via AquaOps`
   const handleEmail = () => {
     const subject =
       encodeURIComponent(
-        "Business Report"
+        "Operational Report"
       )
 
     const body =
@@ -368,7 +398,7 @@ Generated via AquaOps`
         </h1>
 
         <p className="text-xs text-gray-500">
-          Professional business
+          Operational intelligence
           summary
         </p>
       </div>
@@ -445,7 +475,6 @@ Generated via AquaOps`
             "Break-even"}
         </p>
 
-        {/* NET CASH */}
         <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
 
           <div>
@@ -478,10 +507,10 @@ Generated via AquaOps`
 
       </div>
 
-      {/* GRID */}
+      {/* PRIMARY GRID */}
       <div className="grid grid-cols-2 gap-3">
 
-        <div className="bg-white p-3 rounded-xl shadow-sm">
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
             Sales
           </p>
@@ -495,42 +524,103 @@ Generated via AquaOps`
           </p>
         </div>
 
-        <div className="bg-white p-3 rounded-xl shadow-sm">
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
-            Expenses
+            Operational Costs
           </p>
 
           <p className="text-lg font-bold mt-1">
             {formatCurrency(
-              data.expenses,
+              data.costs,
               currencyCode,
               currencySymbol
             )}
           </p>
         </div>
 
-        <div className="bg-white p-3 rounded-xl shadow-sm">
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
             Production
           </p>
 
           <p className="text-lg font-bold mt-1">
-            {data.production} bags
+            {data.production}
           </p>
         </div>
 
-        <div className="bg-white p-3 rounded-xl shadow-sm">
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">
-            Debt
+            Available Stock
           </p>
 
-          <p className="text-lg font-bold text-red-600 mt-1">
+          <p className="text-lg font-bold mt-1">
+            {data.stock}
+          </p>
+        </div>
+
+      </div>
+
+      {/* COST BREAKDOWN */}
+     <div className="bg-white border border-blue-100 rounded-xl shadow-sm p-4 space-y-3">
+
+      <h2 className="font-semibold text-[#2563eb]">
+  Cost Breakdown
+</h2>
+
+        <div className="flex justify-between text-sm">
+          <span>
+            Material Cost
+          </span>
+
+          <span>
+            {formatCurrency(
+              data.materialCost,
+              currencyCode,
+              currencySymbol
+            )}
+          </span>
+        </div>
+
+        <div className="flex justify-between text-sm">
+          <span>
+            Production Cost
+          </span>
+
+          <span>
+            {formatCurrency(
+              data.productionCost,
+              currencyCode,
+              currencySymbol
+            )}
+          </span>
+        </div>
+
+        <div className="flex justify-between text-sm">
+          <span>
+            Other Expense
+          </span>
+
+          <span>
+            {formatCurrency(
+              data.otherExpense,
+              currencyCode,
+              currencySymbol
+            )}
+          </span>
+        </div>
+
+        <div className="flex justify-between text-sm text-red-600">
+          <span>
+            Debt Exposure
+          </span>
+
+          <span>
             {formatCurrency(
               data.debt,
               currencyCode,
               currencySymbol
             )}
-          </p>
+          </span>
         </div>
 
       </div>
