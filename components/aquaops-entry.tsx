@@ -36,20 +36,43 @@ export function AquaOpsEntry() {
 
       // LOGIN
       if (isLogin) {
-        const { error } =
-          await supabase.auth.signInWithPassword(
-            {
-              email,
-              password,
-            }
-          )
+const {
+  data: authData,
+  error,
+} =
+  await supabase.auth.signInWithPassword(
+    {
+      email,
+      password,
+    }
+  )
 
-        if (error) {
-          alert(error.message)
-          return
-        }
+if (error) {
+  alert(error.message)
+  return
+}
 
-        window.location.href = "/aquaops"
+console.log(
+  "LOGIN SUCCESS:",
+  authData
+)
+
+        const { data: membership } =
+  await supabase
+    .from("factory_users")
+    .select("factory_id")
+    .eq("user_id", authData.user.id)
+    .single()
+
+console.log(
+  "MEMBERSHIP:",
+  membership
+)
+
+// GIVE SUPABASE SESSION TIME
+setTimeout(() => {
+  window.location.href = "/aquaops"
+}, 1200)
 
         return
       }
@@ -92,21 +115,51 @@ export function AquaOpsEntry() {
         return
       }
 
-      // CREATE FACTORY
-      const { error: factoryError } =
-        await supabase
-          .from("factories")
-          .insert({
-            user_id: user.id,
-            name: factoryName,
-            currency_code: "NGN",
-            currency_symbol: "₦",
-          })
+// CREATE FACTORY
+const {
+  data: newFactory,
+  error: factoryError,
+} = await supabase
+  .from("factories")
+  .insert({
+    user_id: user.id,
+    name: factoryName,
+    currency_code: "NGN",
+    currency_symbol: "₦",
+  })
+  .select("id")
+  .single()
 
-      if (factoryError) {
-        alert(factoryError.message)
-        return
-      }
+if (
+  factoryError ||
+  !newFactory
+) {
+  alert(
+    factoryError?.message ||
+    "Factory creation failed"
+  )
+
+  return
+}
+
+// CREATE MEMBERSHIP
+const {
+  error: membershipError,
+} = await supabase
+  .from("factory_users")
+  .insert({
+    factory_id: newFactory.id,
+    user_id: user.id,
+    role: "owner",
+  })
+
+if (membershipError) {
+  alert(
+    membershipError.message
+  )
+
+  return
+}
 
       localStorage.setItem(
         "factoryName",
