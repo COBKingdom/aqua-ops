@@ -9,86 +9,97 @@ import { Debts } from "@/components/screens/debts"
 import { BottomNav } from "@/components/bottom-nav"
 import { setFactoryName } from "@/lib/factory"
 import { Reports } from "@/components/screens/reports"
-import { AuthModal } from "@/components/auth-modal"
 import { useRouter } from "next/navigation"
 import { Loans } from "@/components/screens/loans"
 import { Bank } from "@/components/screens/bank"
-import { supabase } from "@/lib/supabase"
 import { AccountScreen } from "@/components/screens/account"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 import { HistoryScreen } from "@/components/screens/history"
+import { getCurrentFactory } from "@/lib/current-factory"
 
 export default function WaterFactoryApp() {
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [factoryName, setFactoryNameState] = useState<string | null>(null)
-  const [showAuth, setShowAuth] = useState(false)
+
+  const [activeTab, setActiveTab] =
+    useState("dashboard")
+
+  const [
+    factoryName,
+    setFactoryNameState,
+  ] = useState<string | null>(null)
 
   const router = useRouter()
 
   // GLOBAL AUTH
-  const { user, loading } = useAuth()
+  const { user, loading } =
+    useAuth()
 
   // LOAD FACTORY
   useEffect(() => {
-    const loadFactory = async () => {
-      const path = window.location.pathname
 
-      // Skip onboarding
-      if (path === "/onboarding") return
+    const loadFactory = async () => {
 
       try {
-        // AUTH USER EXISTS
-        if (user?.email) {
 
-          // FIND USER FACTORY
-          const { data: factory } = await supabase
-            .from("factories")
-            .select("id, name")
-            .eq("user_id", user.id)
-            .single()
+        // WAIT FOR AUTH HYDRATION
+        if (loading) return
 
-          // FACTORY FOUND
-          if (factory) {
-            localStorage.setItem("factoryId", factory.id)
-            localStorage.setItem("factoryName", factory.name)
+        // NO USER
+        if (!user) {
 
-            setFactoryNameState(factory.name)
+          // SEND TO MAIN ENTRY FLOW
+          router.push("/")
 
-            // INIT TRIAL
-            if (!localStorage.getItem("trialStart")) {
-              localStorage.setItem(
-                "trialStart",
-                new Date().toISOString()
-              )
-            }
-
-            return
-          }
-        }
-
-        // FALLBACK TO LOCAL CACHE
-        const factoryId = localStorage.getItem("factoryId")
-        const name = localStorage.getItem("factoryName")
-
-        if (!factoryId) {
-          router.push("/onboarding")
           return
         }
 
-        setFactoryNameState(name || "Factory")
+        // GET CURRENT FACTORY
+        const factory =
+          await getCurrentFactory()
+
+        // FACTORY FOUND
+        if (factory) {
+
+          setFactoryNameState(
+            factory.name
+          )
+
+          // OPTIONAL UI CACHE
+          localStorage.setItem(
+            "factoryName",
+            factory.name
+          )
+
+          // KEEP EXISTING TRIAL LOGIC
+          if (
+            !localStorage.getItem(
+              "trialStart"
+            )
+          ) {
+
+            localStorage.setItem(
+              "trialStart",
+              new Date().toISOString()
+            )
+          }
+
+          return
+        }
+
+        // NO FACTORY FOUND
+        // RETURN TO ENTRY FLOW
+        router.push("/")
 
       } catch (err) {
+
         console.error(err)
-        router.push("/onboarding")
+
+        router.push("/")
       }
     }
 
-    // WAIT FOR AUTH TO LOAD
-    if (!loading) {
-      loadFactory()
-    }
+    loadFactory()
 
   }, [user, loading, router])
 
@@ -104,32 +115,95 @@ export default function WaterFactoryApp() {
 
   // SCREEN RENDERER
   const renderScreen = () => {
-    if (activeTab === "dashboard") {
-      return <Dashboard setActiveTab={setActiveTab} />
+
+    if (
+      activeTab === "dashboard"
+    ) {
+      return (
+        <Dashboard
+          setActiveTab={
+            setActiveTab
+          }
+        />
+      )
     }
 
-    if (activeTab === "production") return <Production />
-    if (activeTab === "sales") return <Sales />
-    if (activeTab === "expenses") return <Expenses />
-    if (activeTab === "debts") return <Debts />
-    if (activeTab === "reports") {
-  return (
-    <Reports
-      setActiveTab={setActiveTab}
-    />
-  )
-}
-    if (activeTab === "loans") return <Loans />
-    if (activeTab === "bank") return <Bank />
-    if (activeTab === "account") return <AccountScreen />
-    if (activeTab === "history") {
-     return <HistoryScreen /> 
-}
-    if (activeTab === "admin-subscriptions") {
-     return <AdminSubscriptions />
-}
+    if (
+      activeTab === "production"
+    ) {
+      return <Production />
+    }
 
-     return <Dashboard setActiveTab={setActiveTab} />
+    if (
+      activeTab === "sales"
+    ) {
+      return <Sales />
+    }
+
+    if (
+      activeTab === "expenses"
+    ) {
+      return <Expenses />
+    }
+
+    if (
+      activeTab === "debts"
+    ) {
+      return <Debts />
+    }
+
+    if (
+      activeTab === "reports"
+    ) {
+      return (
+        <Reports
+          setActiveTab={
+            setActiveTab
+          }
+        />
+      )
+    }
+
+    if (
+      activeTab === "loans"
+    ) {
+      return <Loans />
+    }
+
+    if (
+      activeTab === "bank"
+    ) {
+      return <Bank />
+    }
+
+    if (
+      activeTab === "account"
+    ) {
+      return <AccountScreen />
+    }
+
+    if (
+      activeTab === "history"
+    ) {
+      return <HistoryScreen />
+    }
+
+    if (
+      activeTab ===
+      "admin-subscriptions"
+    ) {
+      return (
+        <AdminSubscriptions />
+      )
+    }
+
+    return (
+      <Dashboard
+        setActiveTab={
+          setActiveTab
+        }
+      />
+    )
   }
 
   // MAIN APP
@@ -143,6 +217,7 @@ export default function WaterFactoryApp() {
 
           {/* LOGO + FACTORY */}
           <div className="flex items-center gap-2">
+
             <img
               src="/icon-192.png"
               alt="AquaOps Logo"
@@ -150,6 +225,7 @@ export default function WaterFactoryApp() {
             />
 
             <div>
+
               <h1 className="text-sm font-bold text-[#0d1b3e]">
                 AquaOps
               </h1>
@@ -157,6 +233,7 @@ export default function WaterFactoryApp() {
               <p className="text-[10px] text-gray-400">
                 {factoryName}
               </p>
+
             </div>
           </div>
 
@@ -166,38 +243,55 @@ export default function WaterFactoryApp() {
             {/* ACCOUNT */}
             <button
               onClick={() => {
-                if (user) {
-                  setActiveTab("account")
-                } else {
-                  setShowAuth(true)
-                }
+                setActiveTab(
+                  "account"
+                )
               }}
               className="text-xs bg-[#0d1b3e] text-white px-3 py-1.5 rounded-lg"
             >
               Account
             </button>
-            
+
             {/* ADMIN */}
-{user?.email === "domainkc1@yahoo.com" && (
-  <button
-    onClick={() =>
-      setActiveTab("admin-subscriptions")
-    }
-    className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
-  >
-    Admin
-  </button>
-)}
+            {user?.email ===
+              "domainkc1@yahoo.com" && (
+
+              <button
+                onClick={() =>
+                  setActiveTab(
+                    "admin-subscriptions"
+                  )
+                }
+                className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
+              >
+                Admin
+              </button>
+
+            )}
 
             {/* CHANGE FACTORY */}
             <button
               onClick={() => {
-                const newName = prompt("Enter new factory name")
 
-                if (newName && newName.trim() !== "") {
-                  setFactoryName(newName)
-                  setFactoryNameState(newName)
+                const newName =
+                  prompt(
+                    "Enter new factory name"
+                  )
+
+                if (
+                  newName &&
+                  newName.trim() !== ""
+                ) {
+
+                  setFactoryName(
+                    newName
+                  )
+
+                  setFactoryNameState(
+                    newName
+                  )
                 }
+
               }}
               className="text-xs bg-gray-200 px-3 py-1.5 rounded-lg"
             >
@@ -215,15 +309,12 @@ export default function WaterFactoryApp() {
         {/* NAV */}
         <BottomNav
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={
+            setActiveTab
+          }
         />
 
       </div>
-
-      {/* AUTH MODAL */}
-      {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)} />
-      )}
 
     </ProtectedRoute>
   )

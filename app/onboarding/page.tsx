@@ -54,38 +54,81 @@ export default function OnboardingPage() {
 
       let factoryId = ""
 
-      // ✅ CHECK IF USER ALREADY HAS FACTORY
-      const { data: existingFactory } = await supabase
-        .from("factories")
-        .select("id, name")
-        .eq("user_id", user.id)
-        .single()
+// ✅ CHECK USER MEMBERSHIP
+const { data: membership } =
+  await supabase
+    .from("factory_users")
+    .select("factory_id")
+    .eq("user_id", user.id)
+    .single()
 
-      // ✅ EXISTING FACTORY
-      if (existingFactory) {
-        factoryId = existingFactory.id
+// ✅ EXISTING MEMBERSHIP
+if (membership?.factory_id) {
 
-        localStorage.setItem("factoryId", existingFactory.id)
-        localStorage.setItem("factoryName", existingFactory.name)
+  const { data: existingFactory } =
+    await supabase
+      .from("factories")
+      .select("id, name")
+      .eq("id", membership.factory_id)
+      .single()
 
-        setFactoryName(existingFactory.name)
+  if (existingFactory) {
 
-        router.push("/aquaops")
+    setFactoryName(
+      existingFactory.name
+    )
 
-        return
-      }
+    localStorage.setItem(
+      "factoryName",
+      existingFactory.name
+    )
+
+    router.push("/aquaops")
+
+    return
+  }
+}
 
       // ✅ CREATE NEW FACTORY
-      const { data: newFactory, error: insertError } = await supabase
-        .from("factories")
-        .insert([
-          {
-            name,
-            user_id: user.id,
-          },
-        ])
-        .select("id")
-        .single()
+const {
+  data: newFactory,
+  error: insertError,
+} = await supabase
+  .from("factories")
+  .insert([
+    {
+      name,
+      user_id: user.id,
+    },
+  ])
+  .select("id")
+  .single()
+
+if (
+  insertError ||
+  !newFactory
+) {
+  console.error(insertError)
+
+  alert(
+    "Error creating factory"
+  )
+
+  setLoading(false)
+
+  return
+}
+
+// ✅ CREATE MEMBERSHIP
+await supabase
+  .from("factory_users")
+  .insert([
+    {
+      factory_id: newFactory.id,
+      user_id: user.id,
+      role: "owner",
+    },
+  ])
 
       if (insertError || !newFactory) {
         console.error(insertError)

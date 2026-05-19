@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
+import { AquaOpsEntry } from "@/components/aquaops-entry"
 
 export default function Home() {
-  redirect("/aquaops")
+  return <AquaOpsEntry />
 }
