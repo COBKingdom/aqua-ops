@@ -81,7 +81,8 @@ const [data, setData] = useState({
   // LOAD DASHBOARD
   useEffect(() => {
     const loadDashboard = async () => {
-      const factoryId = getFactoryId()
+      const factoryId =
+  await getFactoryId()
 
       if (!factoryId) return
 

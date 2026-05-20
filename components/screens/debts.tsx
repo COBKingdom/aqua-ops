@@ -18,7 +18,8 @@ export function Debts() {
   const [currencySymbol, setCurrencySymbol] = useState("₦")
 
   const loadDebts = async () => {
-    const factoryId = getFactoryId()
+   const factoryId =
+  await getFactoryId()
     if (!factoryId) return
 
     const currency = await getFactoryCurrency()
@@ -58,7 +59,8 @@ export function Debts() {
 
   // 💰 COLLECT PAYMENT
   const handleCollect = async () => {
-    const factoryId = getFactoryId()
+   const factoryId =
+  await getFactoryId()
 
     if (!factoryId || !selectedCustomer || !payment) return
 

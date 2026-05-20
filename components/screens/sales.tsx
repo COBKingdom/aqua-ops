@@ -61,8 +61,8 @@ export function Sales() {
       try {
         setLoading(true)
 
-        const factoryId =
-          getFactoryId()
+       const factoryId =
+  await getFactoryId()
 
         if (!factoryId) {
           alert(

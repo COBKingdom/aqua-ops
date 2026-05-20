@@ -90,8 +90,8 @@ export function Reports({
 
   const loadReport = async () => {
     try {
-      const factoryId =
-        getFactoryId()
+const factoryId =
+  await getFactoryId()
 
       if (!factoryId) return
 

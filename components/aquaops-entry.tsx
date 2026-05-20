@@ -48,7 +48,25 @@ const {
   )
 
 if (error) {
-  alert(error.message)
+
+  setLoading(false)
+
+  if (
+    error.message
+      .toLowerCase()
+      .includes("invalid login credentials")
+  ) {
+
+    alert(
+      "Account not found. Please create an account first."
+    )
+
+  } else {
+
+    alert(error.message)
+
+  }
+
   return
 }
 

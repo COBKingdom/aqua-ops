@@ -42,7 +42,7 @@ export function Production() {
   const handleSubmit =
     async () => {
       const factoryId =
-        getFactoryId()
+  await getFactoryId()
 
       if (!factoryId) {
         alert(

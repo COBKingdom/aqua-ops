@@ -78,8 +78,8 @@ export function Expenses() {
     try {
       setLoading(true)
 
-      const factoryId =
-        getFactoryId()
+const factoryId =
+  await getFactoryId()
 
       if (!factoryId) {
         alert("Factory not found")
