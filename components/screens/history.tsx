@@ -50,9 +50,19 @@ export function HistoryScreen() {
       return startDate
     }
 
-    if (period === "today") {
-      return now.toISOString()
-    }
+if (period === "today") {
+  const startOfDay =
+    new Date()
+
+  startOfDay.setHours(
+    0,
+    0,
+    0,
+    0
+  )
+
+  return startOfDay.toISOString()
+}
 
     if (period === "week") {
       return new Date(

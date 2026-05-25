@@ -63,11 +63,21 @@ export function Reports({
   const getDateFilter = () => {
     const now = new Date()
 
-    if (period === "today") {
-      return now
-        .toISOString()
-        .split("T")[0]
-    }
+if (period === "today") {
+  const startOfDay =
+    new Date()
+
+  startOfDay.setHours(
+    0,
+    0,
+    0,
+    0
+  )
+
+  return startOfDay
+    .toISOString()
+    .split("T")[0]
+}
 
     if (period === "week") {
       return new Date(
