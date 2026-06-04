@@ -5,93 +5,78 @@ import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 
 type SubscriptionUser = {
-  id: string
-  email: string
+  factory_id: string
+  factory_name: string
+  user_id: string
   plan: string
   status: string
+  trial_end_date: string
   expires_at: string | null
 }
 
-const ADMIN_EMAIL = "domainkc1@yahoo.com"
-
 export function AdminSubscriptions() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] =
+    useState(false)
 
   const [authorized, setAuthorized] =
     useState(false)
 
-  const [users, setUsers] = useState<
-    SubscriptionUser[]
-  >([])
+  const [users, setUsers] =
+    useState<SubscriptionUser[]>([])
 
-  // LOAD USERS
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        // ADMIN CHECK
-        if (user?.email !== ADMIN_EMAIL) {
-          return
-        }
-
-        setAuthorized(true)
-
-        // GET FACTORIES
-        const { data: factories } = await supabase
-          .from("factories")
-          .select("user_id")
-
-        if (!factories) return
-
-        const userIds = factories
-          .map((f) => f.user_id)
-          .filter(Boolean)
-
-        if (userIds.length === 0) return
-
-        // GET SUBSCRIPTIONS
-        const { data: subscriptions } =
-          await supabase
-            .from("subscriptions")
-            .select("*")
-            .in("user_id", userIds)
-
-        // GET AUTH USERS
-        const finalUsers: SubscriptionUser[] = []
-
-        for (const id of userIds) {
-          const subscription = subscriptions?.find(
-            (s) => s.user_id === id
-          )
-
-          finalUsers.push({
-            id,
-            email: id,
-            plan:
-              subscription?.plan || "free",
-            status:
-              subscription?.status ||
-              "inactive",
-            expires_at:
-              subscription?.expires_at || null,
-          })
-        }
-
-        setUsers(finalUsers)
-
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
     loadUsers()
   }, [])
 
-  // ACTIVATE PRO
-  const activatePro = async (
+  const loadUsers = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const { data: adminUser } =
+        await supabase
+          .from("admin_users")
+          .select("email")
+          .eq("email", user?.email)
+          .single()
+
+      if (!adminUser) return
+
+      setAuthorized(true)
+
+      const { data } = await supabase
+        .from("saas_customers")
+        .select("*")
+        .order(
+          "signup_date",
+          { ascending: false }
+        )
+
+      if (!data) return
+
+      setUsers(
+        data.map((item: any) => ({
+          factory_id: item.factory_id,
+          factory_name:
+            item.factory_name,
+          user_id: item.user_id,
+          plan:
+            item.plan || "Starter",
+          status:
+            item.status || "Trial",
+          trial_end_date:
+            item.trial_end_date,
+          expires_at:
+            item.expires_at,
+        }))
+      )
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const activateMonthly = async (
     userId: string
   ) => {
     try {
@@ -101,31 +86,33 @@ export function AdminSubscriptions() {
 
       const expiry = new Date()
 
-      expiry.setDate(
-        expiry.getDate() + 30
+      expiry.setMonth(
+        expiry.getMonth() + 1
       )
 
-      const { error } = await supabase
-        .from("subscriptions")
-        .upsert({
-          user_id: userId,
-          plan: "pro",
-          status: "active",
-          started_at:
-            now.toISOString(),
-          expires_at:
-            expiry.toISOString(),
-        })
+      const { error } =
+        await supabase
+          .from("subscriptions")
+          .upsert({
+            user_id: userId,
+            plan: "Monthly",
+            status: "Active",
+            started_at:
+              now.toISOString(),
+            expires_at:
+              expiry.toISOString(),
+          })
 
       if (error) {
         alert(error.message)
         return
       }
 
-      alert("Pro activated")
+      alert(
+        "Monthly subscription activated"
+      )
 
-      window.location.reload()
-
+      loadUsers()
     } catch (error) {
       console.error(error)
     } finally {
@@ -133,30 +120,43 @@ export function AdminSubscriptions() {
     }
   }
 
-  // DEACTIVATE
-  const deactivateUser = async (
+  const activateAnnual = async (
     userId: string
   ) => {
     try {
       setLoading(true)
 
-      const { error } = await supabase
-        .from("subscriptions")
-        .upsert({
-          user_id: userId,
-          plan: "free",
-          status: "inactive",
-        })
+      const now = new Date()
+
+      const expiry = new Date()
+
+      expiry.setFullYear(
+        expiry.getFullYear() + 1
+      )
+
+      const { error } =
+        await supabase
+          .from("subscriptions")
+          .upsert({
+            user_id: userId,
+            plan: "Annual",
+            status: "Active",
+            started_at:
+              now.toISOString(),
+            expires_at:
+              expiry.toISOString(),
+          })
 
       if (error) {
         alert(error.message)
         return
       }
 
-      alert("Subscription removed")
+      alert(
+        "Annual subscription activated"
+      )
 
-      window.location.reload()
-
+      loadUsers()
     } catch (error) {
       console.error(error)
     } finally {
@@ -164,7 +164,37 @@ export function AdminSubscriptions() {
     }
   }
 
-  // BLOCK NON-ADMINS
+  const suspendSubscription =
+    async (userId: string) => {
+      try {
+        setLoading(true)
+
+        const { error } =
+          await supabase
+            .from("subscriptions")
+            .upsert({
+              user_id: userId,
+              plan: "Starter",
+              status: "Suspended",
+            })
+
+        if (error) {
+          alert(error.message)
+          return
+        }
+
+        alert(
+          "Subscription suspended"
+        )
+
+        loadUsers()
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
   if (!authorized) {
     return (
       <div className="p-6">
@@ -190,17 +220,17 @@ export function AdminSubscriptions() {
 
         {users.map((user) => (
           <div
-            key={user.id}
+            key={user.factory_id}
             className="bg-white rounded-2xl p-5 shadow-sm space-y-3"
           >
 
             <div>
               <p className="text-xs text-gray-500">
-                User ID
+                Factory
               </p>
 
-              <p className="text-sm break-all">
-                {user.id}
+              <p className="font-bold text-lg">
+                {user.factory_name}
               </p>
             </div>
 
@@ -209,7 +239,7 @@ export function AdminSubscriptions() {
                 Plan
               </p>
 
-              <p className="font-semibold capitalize">
+              <p className="font-semibold">
                 {user.plan}
               </p>
             </div>
@@ -219,14 +249,26 @@ export function AdminSubscriptions() {
                 Status
               </p>
 
-              <p className="capitalize">
+              <p>
                 {user.status}
               </p>
             </div>
 
             <div>
               <p className="text-xs text-gray-500">
-                Expiry
+                Trial Ends
+              </p>
+
+              <p>
+                {new Date(
+                  user.trial_end_date
+                ).toLocaleDateString()}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Subscription Expiry
               </p>
 
               <p>
@@ -234,7 +276,7 @@ export function AdminSubscriptions() {
                   ? new Date(
                       user.expires_at
                     ).toLocaleDateString()
-                  : "No expiry"}
+                  : "Not subscribed"}
               </p>
             </div>
 
@@ -243,20 +285,36 @@ export function AdminSubscriptions() {
               <Button
                 disabled={loading}
                 onClick={() =>
-                  activatePro(user.id)
+                  activateMonthly(
+                    user.user_id
+                  )
                 }
               >
-                Activate Pro
+                Monthly
+              </Button>
+
+              <Button
+                disabled={loading}
+                onClick={() =>
+                  activateAnnual(
+                    user.user_id
+                  )
+                }
+                className="bg-green-600"
+              >
+                Annual
               </Button>
 
               <Button
                 variant="destructive"
                 disabled={loading}
                 onClick={() =>
-                  deactivateUser(user.id)
+                  suspendSubscription(
+                    user.user_id
+                  )
                 }
               >
-                Deactivate
+                Suspend
               </Button>
 
             </div>

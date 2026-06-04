@@ -18,6 +18,10 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 import { HistoryScreen } from "@/components/screens/history"
 import { getCurrentFactory } from "@/lib/current-factory"
+import { AdminDashboard } from "@/components/screens/admin-dashboard"
+import { AdminPayments } from "@/components/screens/admin-payments"
+import { AdminRevenue } from "@/components/screens/admin-revenue"
+import { AdminCustomers } from "@/components/screens/admin-customers"
 
 export default function WaterFactoryApp() {
 
@@ -182,21 +186,55 @@ export default function WaterFactoryApp() {
       return <AccountScreen />
     }
 
-    if (
-      activeTab === "history"
-    ) {
-      return <HistoryScreen />
-    }
+if (
+  activeTab === "history"
+) {
+  return <HistoryScreen />
+}
 
-    if (
-      activeTab ===
-      "admin-subscriptions"
-    ) {
-      return (
-        <AdminSubscriptions />
-      )
-    }
+if (
+  activeTab ===
+  "admin-dashboard"
+) {
+  return (
+   <AdminDashboard
+  onNavigate={setActiveTab}
+/>
+  )
+}
 
+if (
+  activeTab ===
+  "admin-subscriptions"
+) {
+  return (
+    <AdminSubscriptions />
+  )
+}
+if (
+  activeTab ===
+  "admin-payments"
+) {
+  return (
+    <AdminPayments />
+  )
+}
+if (
+  activeTab ===
+  "admin-revenue"
+) {
+  return (
+    <AdminRevenue />
+  )
+}
+if (
+  activeTab ===
+  "admin-customers"
+) {
+  return (
+    <AdminCustomers />
+  )
+}
     return (
       <Dashboard
         setActiveTab={
@@ -252,22 +290,17 @@ export default function WaterFactoryApp() {
               Account
             </button>
 
-            {/* ADMIN */}
-            {user?.email ===
-              "domainkc1@yahoo.com" && (
-
-              <button
-                onClick={() =>
-                  setActiveTab(
-                    "admin-subscriptions"
-                  )
-                }
-                className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
-              >
-                Admin
-              </button>
-
-            )}
+{/* ADMIN */}
+<button
+  onClick={() =>
+    setActiveTab(
+      "admin-dashboard"
+    )
+  }
+  className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
+>
+  Admin
+</button>
 
             {/* CHANGE FACTORY */}
             <button
