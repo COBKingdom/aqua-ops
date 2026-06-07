@@ -197,83 +197,113 @@ export function AdminPayments() {
           return
         }
 
-        // GET CURRENT SUBSCRIPTION
+// GET CURRENT SUBSCRIPTION
 
-        const {
-          data:
-            currentSub,
-        } = await supabase
-          .from(
-            "subscriptions"
-          )
-          .select("*")
-          .eq(
-            "user_id",
-            factory.user_id
-          )
-          .single()
-
-        let baseDate =
-          new Date()
-
-        if (
-          currentSub?.expires_at
-        ) {
-          const expiry =
-            new Date(
-              currentSub.expires_at
-            )
-
-          if (
-            expiry >
-            new Date()
-          ) {
-            baseDate =
-              expiry
-          }
-        }
-
-        const newExpiry =
-          new Date(
-            baseDate
-          )
-
-        if (
-          form.plan ===
-          "Annual"
-        ) {
-          newExpiry.setFullYear(
-            newExpiry.getFullYear() +
-              1
-          )
-        } else {
-          newExpiry.setMonth(
-            newExpiry.getMonth() +
-              1
-          )
-        }
-
- const {
-  error:
-    subscriptionError,
+const {
+  data: currentSub,
 } = await supabase
   .from("subscriptions")
-  .update({
-    plan: form.plan,
-
-    status: "Active",
-
-    started_at:
-      now.toISOString(),
-
-    expires_at:
-      newExpiry.toISOString(),
-  })
+  .select("*")
   .eq(
     "user_id",
     factory.user_id
   )
+  .limit(1)
+  .maybeSingle()
 
+let baseDate =
+  new Date()
+
+if (
+  currentSub?.expires_at
+) {
+  const expiry =
+    new Date(
+      currentSub.expires_at
+    )
+
+  if (
+    expiry >
+    new Date()
+  ) {
+    baseDate = expiry
+  }
+}
+
+const newExpiry =
+  new Date(baseDate)
+
+if (
+  form.plan ===
+  "Annual"
+) {
+  newExpiry.setFullYear(
+    newExpiry.getFullYear() + 1
+  )
+} else {
+  newExpiry.setMonth(
+    newExpiry.getMonth() + 1
+  )
+}
+
+let subscriptionError =
+  null
+
+if (currentSub) {
+
+  const result =
+    await supabase
+      .from(
+        "subscriptions"
+      )
+      .update({
+        plan: form.plan,
+
+        status: "Active",
+
+        started_at:
+          now.toISOString(),
+
+        expires_at:
+          newExpiry.toISOString(),
+      })
+      .eq(
+        "id",
+        currentSub.id
+      )
+
+  subscriptionError =
+    result.error
+
+} else {
+
+  const result =
+    await supabase
+      .from(
+        "subscriptions"
+      )
+      .insert([
+        {
+          user_id:
+            factory.user_id,
+
+          plan:
+            form.plan,
+
+          status:
+            "Active",
+
+          started_at:
+            now.toISOString(),
+
+          expires_at:
+            newExpiry.toISOString(),
+        },
+      ])
+
+  subscriptionError =
+    result.error
+}
         if (
           subscriptionError
         ) {

@@ -1,21 +1,12 @@
-import { getUserPlan } from "@/lib/subscription"
-import { isTrialExpired } from "@/lib/trial"
+import {
+  getSubscription,
+  hasAppAccess,
+  isExpired,
+} from "@/lib/subscription"
 
 export async function hasActiveAccess() {
   try {
-    const plan = await getUserPlan()
-
-    // PAID USERS
-    if (
-      plan === "pro" ||
-      plan === "enterprise"
-    ) {
-      return true
-    }
-
-    // FREE TRIAL USERS
-    return !isTrialExpired()
-
+    return await hasAppAccess()
   } catch (error) {
     console.error(
       "Access check error:",
@@ -28,21 +19,40 @@ export async function hasActiveAccess() {
 
 export async function getAccessStatus() {
   try {
-    const plan = await getUserPlan()
+    const subscription =
+      await getSubscription()
 
-    if (plan === "pro") {
-      return "pro"
-    }
-
-    if (plan === "enterprise") {
-      return "enterprise"
-    }
-
-    if (isTrialExpired()) {
+    if (!subscription) {
       return "expired"
     }
 
-    return "trial"
+    if (
+      subscription.isAdmin
+    ) {
+      return "admin"
+    }
+
+    if (
+      await isExpired()
+    ) {
+      return "expired"
+    }
+
+    if (
+      subscription.status ===
+      "Active"
+    ) {
+      return "active"
+    }
+
+    if (
+      subscription.status ===
+      "Trial"
+    ) {
+      return "trial"
+    }
+
+    return "expired"
 
   } catch (error) {
     console.error(

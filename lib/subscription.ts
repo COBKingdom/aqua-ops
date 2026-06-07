@@ -1,52 +1,147 @@
 import { supabase } from "@/lib/supabase"
 
-export type PlanType =
-  | "free"
-  | "pro"
-  | "enterprise"
+export type SubscriptionStatus =
+  | "Trial"
+  | "Active"
+  | "Expired"
 
-export async function getUserPlan(): Promise<PlanType> {
+export async function getSubscription() {
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
-      return "free"
-    }
+    if (!user) return null
 
-    // CHECK ACTIVE SUBSCRIPTION
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("plan, status, expires_at")
-      .eq("user_id", user.id)
-      .single()
+    // ADMIN BYPASS
 
-    if (
-      data?.status === "active" &&
-      data?.expires_at
-    ) {
-      const expiry = new Date(data.expires_at)
+    const { data: admin } =
+      await supabase
+        .from("admin_users")
+        .select("id")
+        .eq(
+          "email",
+          user.email
+        )
+        .single()
 
-      if (expiry > new Date()) {
-        return data.plan as PlanType
+    if (admin) {
+      return {
+        isAdmin: true,
+        status: "Active",
+        plan: "Admin",
       }
     }
 
-    return "free"
+    const { data } =
+      await supabase
+        .from("saas_customers")
+        .select("*")
+        .eq(
+          "user_id",
+          user.id
+        )
+           .limit(1)
+    .maybeSingle()
+
+    return data
 
   } catch (error) {
-    console.error("Plan error:", error)
+    console.error(
+      "Subscription error:",
+      error
+    )
 
-    return "free"
+    return null
   }
 }
 
-export async function isProUser() {
-  const plan = await getUserPlan()
+export async function hasAppAccess() {
+  const subscription =
+    await getSubscription()
+
+  if (!subscription)
+    return false
+
+  if (
+    subscription.isAdmin
+  )
+    return true
 
   return (
-    plan === "pro" ||
-    plan === "enterprise"
+    subscription.status ===
+      "Trial" ||
+    subscription.status ===
+      "Active"
+  )
+}
+
+export async function isExpired() {
+  const subscription =
+    await getSubscription()
+
+  if (!subscription)
+    return true
+
+  if (
+    subscription.isAdmin
+  )
+    return false
+
+  return (
+    subscription.status ===
+    "Expired"
+  )
+}
+
+export async function daysRemaining() {
+  const subscription =
+    await getSubscription()
+
+  if (
+    !subscription?.expires_at
+  )
+    return 0
+
+  const expiry =
+    new Date(
+      subscription.expires_at
+    )
+
+  const today =
+    new Date()
+
+  const diff =
+    expiry.getTime() -
+    today.getTime()
+
+  return Math.max(
+    0,
+    Math.ceil(
+      diff /
+        (1000 *
+          60 *
+          60 *
+          24)
+    )
+  )
+}
+export async function isProUser() {
+  const subscription =
+    await getSubscription()
+
+  if (!subscription) {
+    return false
+  }
+
+  if (
+    subscription.isAdmin
+  ) {
+    return true
+  }
+
+  return (
+    subscription.status ===
+    "Active"
   )
 }
