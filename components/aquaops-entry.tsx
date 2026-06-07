@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 
 import {
   Factory,
@@ -13,7 +12,6 @@ import {
 import { supabase } from "@/lib/supabase"
 
 export function AquaOpsEntry() {
-  const router = useRouter()
 
   const [isLogin, setIsLogin] =
     useState(false)
@@ -30,175 +28,284 @@ export function AquaOpsEntry() {
   const [password, setPassword] =
     useState("")
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true)
+const handleSubmit = async () => {
+  try {
+    setLoading(true)
 
-      // LOGIN
-      if (isLogin) {
+    // LOGIN
+    if (isLogin) {
+
+      const {
+        data: authData,
+        error,
+      } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+
+        setLoading(false)
+
+        if (
+          error.message
+            .toLowerCase()
+            .includes("invalid login credentials")
+        ) {
+
+          alert(
+            "Account not found. Please create an account first."
+          )
+
+        } else {
+
+          alert(error.message)
+
+        }
+
+        return
+      }
+
+      console.log(
+        "LOGIN SUCCESS:",
+        authData
+      )
+
 const {
-  data: authData,
-  error,
-} =
-  await supabase.auth.signInWithPassword(
-    {
-      email,
-      password,
-    }
+  data: membership,
+  error: membershipLookupError,
+} = await supabase
+  .from("factory_users")
+  .select("factory_id")
+  .eq(
+    "user_id",
+    authData.user.id
   )
-
-if (error) {
-
-  setLoading(false)
-
-  if (
-    error.message
-      .toLowerCase()
-      .includes("invalid login credentials")
-  ) {
-
-    alert(
-      "Account not found. Please create an account first."
-    )
-
-  } else {
-
-    alert(error.message)
-
-  }
-
-  return
-}
-
-console.log(
-  "LOGIN SUCCESS:",
-  authData
-)
-
-        const { data: membership } =
-  await supabase
-    .from("factory_users")
-    .select("factory_id")
-    .eq("user_id", authData.user.id)
-    .single()
+  .maybeSingle()
 
 console.log(
   "MEMBERSHIP:",
   membership
 )
 
-// GIVE SUPABASE SESSION TIME
-setTimeout(() => {
-  window.location.href = "/aquaops"
-}, 1200)
+console.log(
+  "MEMBERSHIP LOOKUP ERROR:",
+  membershipLookupError
+)
 
-        return
-      }
+      // FIRST LOGIN AFTER EMAIL VERIFICATION
 
-      // SIGNUP
-      if (
-        !factoryName ||
-        !email ||
-        !password
-      ) {
-        alert(
-          "Please complete all fields"
-        )
+     if (!membership) {
 
-        return
-      }
+  const pendingFactoryName =
+    localStorage.getItem(
+      "pendingFactoryName"
+    )
 
-      // CREATE ACCOUNT
-      const {
-        data: signupData,
-        error: signupError,
-      } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-      if (signupError) {
-        alert(signupError.message)
-        return
-      }
-
-      const user =
-        signupData.user
-
-      if (!user) {
-        alert(
-          "Account creation failed"
-        )
-
-        return
-      }
-
-// CREATE FACTORY
-const {
-  data: newFactory,
-  error: factoryError,
-} = await supabase
-  .from("factories")
-  .insert({
-    user_id: user.id,
-    name: factoryName,
-    currency_code: "NGN",
-    currency_symbol: "₦",
-  })
-  .select("id")
-  .single()
-
-if (
-  factoryError ||
-  !newFactory
-) {
-  alert(
-    factoryError?.message ||
-    "Factory creation failed"
+  console.log(
+    "PENDING FACTORY:",
+    pendingFactoryName
   )
+
+  if (!pendingFactoryName) {
+
+    console.error(
+      "No pending factory found"
+    )
+
+    window.location.href =
+      "/onboarding"
+
+    return
+  }
+
+  const {
+    data: newFactory,
+    error: factoryError,
+  } = await supabase
+    .from("factories")
+    .insert({
+      user_id: authData.user.id,
+      name: pendingFactoryName,
+      currency_code: "NGN",
+      currency_symbol: "₦",
+    })
+    .select("id")
+    .single()
+
+  console.log(
+    "FACTORY ERROR:",
+    factoryError
+  )
+
+  if (
+    factoryError ||
+    !newFactory
+  ) {
+
+    alert(
+      factoryError?.message ||
+      "Factory creation failed"
+    )
+
+    return
+  }
+
+  const {
+    error: membershipError,
+  } = await supabase
+    .from("factory_users")
+    .insert({
+      factory_id: newFactory.id,
+      user_id: authData.user.id,
+      role: "owner",
+    })
+
+  console.log(
+    "MEMBERSHIP ERROR:",
+    membershipError
+  )
+
+  if (membershipError) {
+
+    alert(
+      membershipError.message
+    )
+
+    return
+  }
+
+  const startedAt =
+    new Date()
+
+  const expiresAt =
+    new Date()
+
+  expiresAt.setDate(
+    expiresAt.getDate() + 60
+  )
+
+  console.log(
+    "CREATING SUBSCRIPTION FOR:",
+    authData.user.id
+  )
+
+  const {
+    error: subscriptionError,
+  } = await supabase
+    .from("subscriptions")
+    .insert({
+      user_id: authData.user.id,
+      plan: "Starter",
+      status: "Trial",
+      started_at:
+        startedAt.toISOString(),
+      expires_at:
+        expiresAt.toISOString(),
+    })
+
+  console.log(
+    "SUBSCRIPTION ERROR:",
+    subscriptionError
+  )
+
+  if (subscriptionError) {
+
+    alert(
+      subscriptionError.message
+    )
+
+    return
+  }
+
+  localStorage.removeItem(
+    "pendingFactoryName"
+  )
+
+  window.location.href =
+    "/aquaops"
 
   return
 }
+      
+      // EXISTING USER
 
-// CREATE MEMBERSHIP
-const {
-  error: membershipError,
-} = await supabase
-  .from("factory_users")
-  .insert({
-    factory_id: newFactory.id,
-    user_id: user.id,
-    role: "owner",
-  })
+window.location.href =
+  "/aquaops"
 
-if (membershipError) {
-  alert(
-    membershipError.message
-  )
+      return
+    }
 
-  return
-}
+    // SIGNUP
 
-      localStorage.setItem(
-        "factoryName",
-        factoryName
-      )
+    if (
+      !factoryName ||
+      !email ||
+      !password
+    ) {
 
       alert(
-        "Account created successfully. Please verify your email before login."
+        "Please complete all fields"
       )
 
-      setIsLogin(true)
-
-    } catch (error) {
-      console.error(error)
-
-      alert("Something went wrong")
-
-    } finally {
-      setLoading(false)
+      return
     }
+
+    const {
+      error: signupError,
+    } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (signupError) {
+
+      if (
+        signupError.message
+          .toLowerCase()
+          .includes("already")
+      ) {
+
+        alert(
+          "This email already has an AquaOps account. Please login instead."
+        )
+
+      } else {
+
+        alert(
+          signupError.message
+        )
+
+      }
+
+      return
+    }
+
+    localStorage.setItem(
+      "pendingFactoryName",
+      factoryName
+    )
+
+    alert(
+      "Account created successfully. Please verify your email before login."
+    )
+
+    setIsLogin(true)
+
+  } catch (error) {
+
+    console.error(error)
+
+    alert(
+      "Something went wrong"
+    )
+
+  } finally {
+
+    setLoading(false)
+
   }
+}
 
   return (
     <div className="min-h-screen bg-[#eef0f5]">

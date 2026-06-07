@@ -1,25 +1,94 @@
 "use client"
 
-import { useEffect } from "react"
+import {
+  useEffect,
+  useState,
+} from "react"
+
 import { useRouter } from "next/navigation"
+
 import { useAuth } from "@/contexts/AuthContext"
+
+import {
+  hasAppAccess,
+} from "@/lib/subscription"
+
+import {
+  SubscriptionExpired,
+} from "@/components/screens/subscription-expired"
 
 export function ProtectedRoute({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading } = useAuth()
+  const { user, loading } =
+    useAuth()
 
-  const router = useRouter()
+  const router =
+    useRouter()
+
+  const [
+    checkingAccess,
+    setCheckingAccess,
+  ] = useState(true)
+
+  const [
+    accessAllowed,
+    setAccessAllowed,
+  ] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/onboarding")
-    }
-  }, [user, loading, router])
+    const checkAccess =
+      async () => {
+        try {
+          if (
+            !loading &&
+            !user
+          ) {
+            router.push(
+              "/onboarding"
+            )
 
-  // WAIT FOR AUTH
+            return
+          }
+
+          if (!user) {
+            return
+          }
+
+          const allowed =
+            await hasAppAccess()
+
+          setAccessAllowed(
+            allowed
+          )
+
+        } catch (error) {
+          console.error(
+            error
+          )
+
+          setAccessAllowed(
+            false
+          )
+
+        } finally {
+          setCheckingAccess(
+            false
+          )
+        }
+      }
+
+    checkAccess()
+  }, [
+    user,
+    loading,
+    router,
+  ])
+
+  // AUTH LOADING
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center text-sm text-gray-500">
@@ -29,10 +98,34 @@ export function ProtectedRoute({
   }
 
   // NO USER
+
   if (!user) {
     return null
   }
 
-  // AUTHENTICATED
+  // ACCESS CHECK
+
+  if (
+    checkingAccess
+  ) {
+    return (
+      <div className="h-screen flex items-center justify-center text-sm text-gray-500">
+        Checking subscription...
+      </div>
+    )
+  }
+
+  // SUBSCRIPTION EXPIRED
+
+  if (
+    !accessAllowed
+  ) {
+    return (
+      <SubscriptionExpired />
+    )
+  }
+
+  // AUTHORIZED
+
   return <>{children}</>
 }
