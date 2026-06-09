@@ -42,7 +42,7 @@ export function SubscriptionExpired() {
         </div>
 
 <a
-  href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support.%0A%0AMy%20subscription%20has%20expired%20and%20I%20would%20like%20to%20renew%20my%20account.%0A%0APlease%20send%20payment%20details."
+  href="https://wa.me/353899550078?text=Hello%20AquaOps%20Support.%0A%0AMy%20subscription%20has%20expired%20and%20I%20would%20like%20to%20renew%20my%20account.%0A%0APlease%20send%20payment%20details."
   target="_blank"
   rel="noopener noreferrer"
 >
