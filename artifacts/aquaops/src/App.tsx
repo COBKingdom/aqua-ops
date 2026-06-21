@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AquaOpsEntry } from "@/components/aquaops-entry";
 import WaterFactoryApp from "@/components/water-factory-app";
+import { ForgotPasswordScreen } from "@/components/screens/forgot-password";
+import { ResetPasswordScreen } from "@/components/screens/reset-password";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -14,6 +16,8 @@ function Router() {
     <Switch>
       <Route path="/" component={AquaOpsEntry} />
       <Route path="/aquaops" component={WaterFactoryApp} />
+      <Route path="/forgot-password" component={ForgotPasswordScreen} />
+      <Route path="/reset-password" component={ResetPasswordScreen} />
       <Route component={NotFound} />
     </Switch>
   );

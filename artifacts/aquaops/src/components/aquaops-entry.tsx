@@ -522,6 +522,17 @@ window.location.href =
               : "Start Free Trial"}
           </button>
 
+          {isLogin && (
+            <p
+              onClick={() => {
+                window.location.href = "/forgot-password"
+              }}
+              className="text-sm text-center text-blue-600 cursor-pointer"
+            >
+              Forgot Password?
+            </p>
+          )}
+
           <p
             onClick={() =>
               setIsLogin(!isLogin)
