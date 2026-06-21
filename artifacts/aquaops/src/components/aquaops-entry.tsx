@@ -98,6 +98,7 @@ console.log(
      if (!membership) {
 
   const pendingFactoryName =
+    authData.user.user_metadata?.pending_factory_name ||
     localStorage.getItem(
       "pendingFactoryName"
     )
@@ -256,6 +257,11 @@ window.location.href =
     } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          pending_factory_name: factoryName,
+        },
+      },
     })
 
     if (signupError) {
