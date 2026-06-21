@@ -1,22 +1,22 @@
-import { useState, useEffect } from "react"
-import { useLocation } from "wouter"
-import { updatePassword } from "@/lib/auth"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { updatePassword } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export function ResetPasswordScreen() {
-  const [, navigate] = useLocation()
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState("")
-  const [isRecovery, setIsRecovery] = useState(false)
-  const [checking, setChecking] = useState(true)
+  const [, navigate] = useLocation();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (!supabase) {
-      setChecking(false)
-      return
+      setChecking(false);
+      return;
     }
 
     // Supabase fires PASSWORD_RECOVERY when the user lands with a recovery token
@@ -24,79 +24,78 @@ export function ResetPasswordScreen() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
-        setIsRecovery(true)
-        setChecking(false)
+        setIsRecovery(true);
+        setChecking(false);
       }
-    })
+    });
 
     // Fallback: parse the URL hash directly in case the event already fired
-    const hash = window.location.hash
+    const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
-      setIsRecovery(true)
-      setChecking(false)
+      setIsRecovery(true);
+      setChecking(false);
     } else {
       // Give Supabase a moment to process the hash before giving up
-      const timer = setTimeout(() => setChecking(false), 2000)
+      const timer = setTimeout(() => setChecking(false), 2000);
       return () => {
-        clearTimeout(timer)
-        subscription.unsubscribe()
-      }
+        clearTimeout(timer);
+        subscription.unsubscribe();
+      };
     }
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSubmit = async () => {
-    setError("")
+    setError("");
 
     if (!password || !confirmPassword) {
-      setError("Please fill in both password fields.")
-      return
+      setError("Please fill in both password fields.");
+      return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.")
-      return
+      setError("Password must be at least 6 characters.");
+      return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.")
-      return
+      setError("Passwords do not match.");
+      return;
     }
 
     if (!supabase) {
-      setError("Service unavailable. Please try again later.")
-      return
+      setError("Service unavailable. Please try again later.");
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      const { error: updateError } = await updatePassword(password)
+      const { error: updateError } = await updatePassword(password);
 
       if (updateError) {
-        setError(updateError.message)
-        return
+        setError(updateError.message);
+        return;
       }
 
-      setSuccess(true)
+      setSuccess(true);
 
       // Redirect to login after a short delay
       setTimeout(() => {
-        navigate("/")
-      }, 3000)
+        navigate("/");
+      }, 3000);
     } catch (err) {
-      console.error(err)
-      setError("Something went wrong. Please try again.")
+      console.error(err);
+      setError("Something went wrong. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-[#eef0f5]">
       <div className="max-w-md mx-auto px-4 pt-10 pb-16 space-y-5">
-
         {/* BRAND */}
         <div className="flex justify-center">
           <img
@@ -108,7 +107,6 @@ export function ResetPasswordScreen() {
 
         {/* CARD */}
         <div className="bg-white rounded-3xl p-5 shadow-sm space-y-4">
-
           <div>
             <h1 className="text-2xl font-bold text-[#0d1b3e]">
               Reset Password
@@ -161,8 +159,8 @@ export function ResetPasswordScreen() {
                 placeholder="New Password"
                 value={password}
                 onChange={(e) => {
-                  setPassword(e.target.value)
-                  setError("")
+                  setPassword(e.target.value);
+                  setError("");
                 }}
                 className="w-full p-4 rounded-2xl border border-gray-200 outline-none"
               />
@@ -172,11 +170,11 @@ export function ResetPasswordScreen() {
                 placeholder="Confirm New Password"
                 value={confirmPassword}
                 onChange={(e) => {
-                  setConfirmPassword(e.target.value)
-                  setError("")
+                  setConfirmPassword(e.target.value);
+                  setError("");
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSubmit()
+                  if (e.key === "Enter") handleSubmit();
                 }}
                 className="w-full p-4 rounded-2xl border border-gray-200 outline-none"
               />
@@ -236,9 +234,8 @@ export function ResetPasswordScreen() {
               </p>
             </div>
           )}
-
         </div>
       </div>
     </div>
-  )
+  );
 }
