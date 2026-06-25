@@ -74,8 +74,10 @@
     "wouter": "^3.3.5",
     "zod": "catalog:"
   },
-  "dependencies": {
+"dependencies": {
   "@supabase/supabase-js": "^2.108.2",
+  "jspdf": "^4.2.1",
+  "jspdf-autotable": "^5.0.8",
   "xlsx": "^0.18.5",
   "zustand": "^5.0.14"
 }
