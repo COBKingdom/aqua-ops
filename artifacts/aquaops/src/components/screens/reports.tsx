@@ -11,6 +11,8 @@ import { formatCurrency } from "@/lib/format"
 
 import { isPremiumUser } from "@/lib/premium"
 
+import { exportReportToExcel } from "@/lib/excel-export"
+
 export function Reports({
   setActiveTab,
 }: {
@@ -51,6 +53,13 @@ export function Reports({
     product: "all",
     shift: "all",
   })
+
+  // Raw arrays for Excel export
+  const [rawSales, setRawSales] = useState<any[]>([])
+  const [rawExpenses, setRawExpenses] = useState<any[]>([])
+  const [rawProduction, setRawProduction] = useState<any[]>([])
+  const [rawLosses, setRawLosses] = useState<any[]>([])
+  const [rawDebtors, setRawDebtors] = useState<any[]>([])
 
   useEffect(() => {
     const checkPremium =
@@ -141,6 +150,21 @@ export function Reports({
           .select("*")
           .eq("factory_id", factoryId)
           .gt("balance", 0)
+
+      // PRODUCTION LOSSES
+      const { data: losses } =
+        await supabase
+          .from("production_losses")
+          .select("*")
+          .eq("factory_id", factoryId)
+          .gte("created_at", dateFilter)
+
+      // Store raw arrays for Excel export
+      setRawSales(sales || [])
+      setRawExpenses(expenses || [])
+      setRawProduction(production || [])
+      setRawLosses(losses || [])
+      setRawDebtors(debts || [])
 
       const totalSales =
         sales?.reduce(
@@ -328,6 +352,27 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }
 
+  const handleExportExcel = () => {
+    exportReportToExcel({
+      period,
+      currencySymbol,
+      summary: {
+        sales: data.sales,
+        costs: data.costs,
+        debt: data.debt,
+        sachetProduction: data.sachetProduction,
+        bottleProduction: data.bottleProduction,
+        sachetStock: data.sachetStock,
+        bottleStock: data.bottleStock,
+      },
+      salesData: rawSales,
+      expensesData: rawExpenses,
+      productionData: rawProduction,
+      productionLossesData: rawLosses,
+      debtorsData: rawDebtors,
+    })
+  }
+
   return (
     <div className="space-y-4 p-3 pb-20">
 
@@ -455,7 +500,7 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
         </h2>
 
         <button
-          onClick={() => alert("Coming Soon")}
+          onClick={handleExportExcel}
           className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
         >
           📊 Export Excel
