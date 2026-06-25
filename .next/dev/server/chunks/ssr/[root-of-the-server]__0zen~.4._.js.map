@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 16, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/kolka/Documents/PROJECTS/AquaOps-clean/AquaOps-clean/app/app/page.tsx"],"sourcesContent":["import WaterFactoryApp from \"@/components/water-factory-app\"\r\n\r\nexport default function Page() {\r\n  return <WaterFactoryApp />\r\n}"],"names":["Page"],"mappings":";;;;;AAAA;;;AAEe,SAASA;IACtB,qBAAO,+SAAC,kNAAe;;;;;AACzB"}}]
+}

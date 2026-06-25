@@ -1,0 +1,3 @@
+module.exports=[26335,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(33678);a.n(d("[project]/Documents/PROJECTS/AquaOps-clean/AquaOps-clean/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},47884,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(33678);a.n(d("[project]/Documents/PROJECTS/AquaOps-clean/AquaOps-clean/node_modules/next/dist/client/components/builtin/global-error.js"))},81877,a=>{"use strict";a.i(26335);var b=a.i(47884);a.n(b)},28001,a=>{a.n(a.i(81877))}];
+
+//# sourceMappingURL=0b~u_next_dist_client_components_builtin_global-error_01qgtvk.js.map

@@ -31,6 +31,7 @@ export function ForgotPasswordScreen() {
         "reset-password"
 
       const { error: resetError } = await resetPassword(email, redirectTo)
+      console.log("RESET REDIRECT =", redirectTo);
 
       if (resetError) {
         setError(resetError.message)
