@@ -21,6 +21,7 @@ import { getCurrentFactory } from "@/lib/current-factory"
 import { AdminDashboard } from "@/components/screens/admin-dashboard"
 import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
+import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { AdminCustomers } from "@/components/screens/admin-customers"
 
 export default function WaterFactoryApp() {
@@ -189,9 +190,13 @@ export default function WaterFactoryApp() {
 if (
   activeTab === "history"
 ) {
-  return <HistoryScreen />
+  return <HistoryScreen setActiveTab={setActiveTab} />
 }
-
+if (
+  activeTab === "migration"
+) {
+  return <MigrationWizard setActiveTab={setActiveTab} />
+}
 if (
   activeTab ===
   "admin-dashboard"
