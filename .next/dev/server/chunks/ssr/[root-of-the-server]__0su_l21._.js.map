@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/kolka/Documents/PROJECTS/AquaOps-clean/AquaOps-clean/app/page.tsx"],"sourcesContent":["import { redirect } from \"next/navigation\"\r\n\r\nexport default function Home() {\r\n  redirect(\"/aquaops\")\r\n}"],"names":["Home"],"mappings":";;;;AAAA;AAAA;;AAEe,SAASA;IACtB,IAAA,kQAAQ,EAAC;AACX"}}]
-}

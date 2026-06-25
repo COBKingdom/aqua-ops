@@ -1,3 +1,0 @@
-module.exports=[73381,a=>{"use strict";var b=a.i(23354);a.s(["default",0,function({children:a}){return(0,b.jsxs)("html",{lang:"en",children:[(0,b.jsxs)("head",{children:[(0,b.jsx)("link",{rel:"manifest",href:"/manifest.json"}),(0,b.jsx)("meta",{name:"theme-color",content:"#000000"})]}),(0,b.jsx)("body",{children:a})]})},"metadata",0,{title:"AquaOps",description:"Water Factory Management App"}])},37373,a=>{a.n(a.i(73381))}];
-
-//# sourceMappingURL=Documents_PROJECTS_AquaOps-clean_AquaOps-clean_app_layout_tsx_0who1v~._.js.map
