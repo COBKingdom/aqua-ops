@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import {
   getFactoryId,
   getFactoryCurrency,
+  getFactoryName,
 } from "@/lib/factory"
 
 import { formatCurrency } from "@/lib/format"
@@ -12,6 +13,8 @@ import { formatCurrency } from "@/lib/format"
 import { isPremiumUser } from "@/lib/premium"
 
 import { exportReportToExcel } from "@/lib/excel-export"
+
+import { exportReportToPDF } from "@/lib/pdf-export"
 
 export function Reports({
   setActiveTab,
@@ -54,7 +57,7 @@ export function Reports({
     shift: "all",
   })
 
-  // Raw arrays for Excel export
+  // Raw arrays for exports
   const [rawSales, setRawSales] = useState<any[]>([])
   const [rawExpenses, setRawExpenses] = useState<any[]>([])
   const [rawProduction, setRawProduction] = useState<any[]>([])
@@ -159,7 +162,7 @@ export function Reports({
           .eq("factory_id", factoryId)
           .gte("created_at", dateFilter)
 
-      // Store raw arrays for Excel export
+      // Store raw arrays for exports
       setRawSales(sales || [])
       setRawExpenses(expenses || [])
       setRawProduction(production || [])
@@ -373,6 +376,27 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
     })
   }
 
+  const handleExportPDF = () => {
+    exportReportToPDF({
+      period,
+      currencySymbol,
+      factoryName: getFactoryName() || undefined,
+      summary: {
+        sales: data.sales,
+        costs: data.costs,
+        debt: data.debt,
+        materialCost: data.materialCost,
+        productionCost: data.productionCost,
+        otherExpense: data.otherExpense,
+        sachetProduction: data.sachetProduction,
+        bottleProduction: data.bottleProduction,
+        sachetStock: data.sachetStock,
+        bottleStock: data.bottleStock,
+      },
+      productionLossesData: rawLosses,
+    })
+  }
+
   return (
     <div className="space-y-4 p-3 pb-20">
 
@@ -507,7 +531,7 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
         </button>
 
         <button
-          onClick={() => alert("Coming Soon")}
+          onClick={handleExportPDF}
           className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
         >
           📄 Export PDF
