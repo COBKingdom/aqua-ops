@@ -150,12 +150,9 @@ export function Production() {
         .insert(lossRows)
 
 if (lossError) {
-  console.error("LOSS ERROR:", lossError)
-
-  alert(
-    "Production saved but losses could not be recorded.\n\n" +
-    JSON.stringify(lossError, null, 2)
-  )
+  console.error("Production loss save error:", lossError)
+  alert("An error occurred while saving production losses.")
+  return
 }
     }
 
