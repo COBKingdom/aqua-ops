@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react"
-
 import { supabase } from "@/lib/supabase"
-
 import {
   getFactoryId,
   getFactoryCurrency,
 } from "@/lib/factory"
-
 import { formatCurrency } from "@/lib/format"
-
 import { isPremiumUser } from "@/lib/premium"
-
 export function Reports({
   setActiveTab,
 }: {
@@ -28,22 +23,16 @@ export function Reports({
     sachetStock: 0,
     bottleStock: 0,
   })
-
   const [period, setPeriod] = useState("today")
-
   const [isPremium, setIsPremium] = useState(false)
-
   const [currencyCode, setCurrencyCode] = useState("NGN")
-
   const [currencySymbol, setCurrencySymbol] = useState("₦")
-
   const [filters, setFilters] = useState({
     fromDate: "",
     toDate: "",
     product: "all",
     shift: "all",
   })
-
   useEffect(() => {
     const checkPremium = async () => {
       const result = await isPremiumUser()
@@ -51,132 +40,107 @@ export function Reports({
     }
     checkPremium()
   }, [])
-
   const getDateFilter = () => {
     const now = new Date()
-
     if (period === "today") {
       const startOfDay = new Date()
       startOfDay.setHours(0, 0, 0, 0)
       return startOfDay.toISOString().split("T")[0]
     }
-
     if (period === "week") {
       return new Date(now.getTime() - 7 * 86400000)
         .toISOString()
         .split("T")[0]
     }
-
     if (period === "month") {
       return new Date(now.getTime() - 30 * 86400000)
         .toISOString()
         .split("T")[0]
     }
   }
-
   const loadReport = async () => {
     try {
       const factoryId = await getFactoryId()
-
       if (!factoryId) return
-
       const currency = await getFactoryCurrency()
-
       setCurrencyCode(currency.code)
       setCurrencySymbol(currency.symbol)
-
       const dateFilter = getDateFilter()
-
       // SALES
       const { data: sales } = await supabase
         .from("sales")
         .select("*")
         .eq("factory_id", factoryId)
         .gte("date", dateFilter)
-
       // COSTS
       const { data: expenses } = await supabase
         .from("expenses")
         .select("*")
         .eq("factory_id", factoryId)
         .gte("created_at", dateFilter)
-
       // PRODUCTION
       const { data: production } = await supabase
         .from("production")
         .select("*")
         .eq("factory_id", factoryId)
         .gte("date", dateFilter)
-
       // DEBTS
       const { data: debts } = await supabase
         .from("sales")
         .select("*")
         .eq("factory_id", factoryId)
         .gt("balance", 0)
-
       const totalSales =
         sales?.reduce(
           (s, i) => s + Number(i.total_amount || 0),
           0
         ) || 0
-
       const totalCosts =
         expenses?.reduce(
           (s, i) => s + Number(i.amount || 0),
           0
         ) || 0
-
       const totalDebt =
         debts?.reduce(
           (s, i) => s + Number(i.balance || 0),
           0
         ) || 0
-
       // COST BREAKDOWN
       const materialCost =
         expenses
           ?.filter((e) => e.cost_group === "Material Cost")
           .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-
       const productionCost =
         expenses
           ?.filter((e) => e.cost_group === "Production Cost")
           .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-
       const otherExpense =
         expenses
           ?.filter((e) => e.cost_group === "Other Expense")
           .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-
       // SACHET PRODUCTION
       const sachetProduction =
         production
           ?.filter((p) => p.product_type === "sachet")
           .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
-
       // BOTTLE PRODUCTION
       const bottleProduction =
         production
           ?.filter((p) => p.product_type === "bottle")
           .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
-
       // SACHET SOLD
       const sachetSold =
         sales
           ?.filter((s) => s.product_type === "sachet")
           .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
-
       // BOTTLE SOLD
       const bottleSold =
         sales
           ?.filter((s) => s.product_type === "bottle")
           .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
-
       // STOCK
       const sachetStock = sachetProduction - sachetSold
       const bottleStock = bottleProduction - bottleSold
-
       setData({
         sales: totalSales,
         costs: totalCosts,
@@ -193,70 +157,49 @@ export function Reports({
       console.error(error)
     }
   }
-
   useEffect(() => {
     loadReport()
   }, [period])
-
   const profit = data.sales - data.costs
-
   const netCashProfit = profit - data.debt
-
   // REPORT GENERATOR
   const generateReportText = () => {
     const text = `📊 OPERATIONAL REPORT — ${period.toUpperCase()}
-
 ━━━━━━━━━━━━━━━━━━━
-
 💰 Revenue
 Sales: ${formatCurrency(data.sales, currencyCode, currencySymbol)}
-
 💸 Operational Costs
 Total: ${formatCurrency(data.costs, currencyCode, currencySymbol)}
-
 • Material Cost: ${formatCurrency(data.materialCost, currencyCode, currencySymbol)}
-
 • Production Cost: ${formatCurrency(data.productionCost, currencyCode, currencySymbol)}
-
 • Other Expense: ${formatCurrency(data.otherExpense, currencyCode, currencySymbol)}
-
 📦 Sachet Production
 ${data.sachetProduction} bags
-
 📦 Sachet Stock
 ${data.sachetStock} bags
-
 📦 Bottle Production
 ${data.bottleProduction} crates
-
 📦 Bottle Stock
 ${data.bottleStock} crates
-
 ⚠️ Debt Exposure
 ${formatCurrency(data.debt, currencyCode, currencySymbol)}
-
 ━━━━━━━━━━━━━━━━━━━
-
 📈 Net Result
 ${formatCurrency(profit, currencyCode, currencySymbol)}
 `
     return text
   }
-
   const handleWhatsApp = () => {
     const text = encodeURIComponent(generateReportText())
     window.open(`https://wa.me/?text=${text}`, "_blank")
   }
-
   const handleEmail = () => {
     const subject = encodeURIComponent("Operational Report")
     const body = encodeURIComponent(generateReportText())
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }
-
   return (
     <div className="space-y-4 p-3 pb-20">
-
       {/* HEADER */}
       <div>
         <h1 className="text-lg font-bold text-[#0d1b3e]">
@@ -266,10 +209,8 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
           Business Intelligence Dashboard
         </p>
       </div>
-
       {/* PERIOD SELECTOR */}
       <div className="flex gap-2 flex-wrap">
-
         {[
           { key: "today", label: "Today" },
           { key: "week",  label: "Week"  },
@@ -287,76 +228,65 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
             {p.label}
           </button>
         ))}
-
         <button
           onClick={() => setActiveTab("history")}
           className="px-3 py-1 rounded-lg text-sm bg-black text-white"
         >
-          Custom
+          History
         </button>
-
       </div>
-
       {/* REPORT FILTERS */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-
+      <div className="bg-white p-3 rounded-xl shadow-sm space-y-2">
         <h2 className="text-sm font-semibold text-[#0d1b3e]">
           Report Filters
         </h2>
-
         <div className="grid grid-cols-2 gap-2">
-
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500">From Date</p>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">From Date</p>
             <input
               type="date"
               value={filters.fromDate}
               onChange={(e) =>
                 setFilters({ ...filters, fromDate: e.target.value })
               }
-              className="w-full h-10 border border-gray-200 rounded-lg px-3 text-sm"
+              className="w-full h-9 border border-gray-200 rounded-lg px-2 text-sm"
             />
           </div>
-
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500">To Date</p>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">To Date</p>
             <input
               type="date"
               value={filters.toDate}
               onChange={(e) =>
                 setFilters({ ...filters, toDate: e.target.value })
               }
-              className="w-full h-10 border border-gray-200 rounded-lg px-3 text-sm"
+              className="w-full h-9 border border-gray-200 rounded-lg px-2 text-sm"
             />
           </div>
-
         </div>
-
         <div className="grid grid-cols-2 gap-2">
-
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500">Product</p>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Product</p>
             <select
               value={filters.product}
               onChange={(e) =>
                 setFilters({ ...filters, product: e.target.value })
               }
-              className="w-full h-10 border border-gray-200 rounded-lg px-3 text-sm bg-white"
+              className="w-full h-9 border border-gray-200 rounded-lg px-2 text-sm bg-white"
             >
               <option value="all">All Products</option>
               <option value="sachet">Sachet</option>
               <option value="bottle">Bottle</option>
             </select>
           </div>
-
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500">Shift</p>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Shift</p>
             <select
               value={filters.shift}
               onChange={(e) =>
                 setFilters({ ...filters, shift: e.target.value })
               }
-              className="w-full h-10 border border-gray-200 rounded-lg px-3 text-sm bg-white"
+              className="w-full h-9 border border-gray-200 rounded-lg px-2 text-sm bg-white"
             >
               <option value="all">All Shifts</option>
               <option value="morning">Morning</option>
@@ -364,64 +294,30 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
               <option value="night">Night</option>
             </select>
           </div>
-
         </div>
-
         <button
           onClick={() => loadReport()}
-          className="w-full h-11 bg-[#2563eb] text-white rounded-lg text-sm font-semibold"
+          className="w-full h-10 bg-[#2563eb] text-white rounded-lg text-sm font-semibold"
         >
           Apply Filters
         </button>
-
       </div>
-
-      {/* EXPORT REPORT */}
-      <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
-
-        <h2 className="text-sm font-semibold text-[#0d1b3e]">
-          Export Report
-        </h2>
-
-        <button
-          onClick={() => alert("Coming Soon")}
-          className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
-        >
-          📊 Export Excel
-        </button>
-
-        <button
-          onClick={() => alert("Coming Soon")}
-          className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
-        >
-          📄 Export PDF
-        </button>
-
-      </div>
-
-      {/* HERO */}
+      {/* HERO — Net Result */}
       <div className="bg-gradient-to-r from-black to-gray-800 text-white p-5 rounded-xl shadow-md">
-
         <p className="text-xs opacity-80">
           Net Result
         </p>
-
         <p className="text-3xl font-bold mt-2">
           {formatCurrency(profit, currencyCode, currencySymbol)}
         </p>
-
         <p className="text-xs mt-1 opacity-90">
           {profit > 0 && "Profit — Business is growing"}
           {profit < 0 && "Loss — Business is declining"}
           {profit === 0 && "Break-even"}
         </p>
-
         <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
-
           <div>
-            <p className="text-xs opacity-70">
-              Net Cash Profit
-            </p>
+            <p className="text-xs opacity-70">Net Cash Profit</p>
             <p
               className={`text-lg font-semibold ${
                 netCashProfit < 0 ? "text-red-400" : "text-green-400"
@@ -430,150 +326,129 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
               {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
             </p>
           </div>
-
           <p className="text-xs opacity-70">
             {netCashProfit < 0 ? "Loss" : "Cash Profit"}
           </p>
-
         </div>
-
       </div>
-
       {/* EXECUTIVE SUMMARY GRID */}
       <div className="grid grid-cols-2 gap-3">
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Sales</p>
           <p className="text-lg font-bold mt-1">
             {formatCurrency(data.sales, currencyCode, currencySymbol)}
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Operational Costs</p>
           <p className="text-lg font-bold mt-1">
             {formatCurrency(data.costs, currencyCode, currencySymbol)}
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Gross Sachet Production</p>
           <p className="text-lg font-bold mt-1">
             {data.sachetProduction} bags
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Production Losses</p>
           <p className="text-lg font-bold mt-1">
             0 bags
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Net Sachet Production</p>
           <p className="text-lg font-bold mt-1">
             {data.sachetProduction} bags
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Sachet Stock</p>
           <p className="text-lg font-bold mt-1">
             {data.sachetStock} bags
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Bottle Production</p>
           <p className="text-lg font-bold mt-1">
             {data.bottleProduction} crates
           </p>
         </div>
-
         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
           <p className="text-sm font-semibold text-[#0d1b3e]">Bottle Stock</p>
           <p className="text-lg font-bold mt-1">
             {data.bottleStock} crates
           </p>
         </div>
-
       </div>
-
       {/* COST BREAKDOWN */}
       <div className="bg-white border border-blue-100 rounded-xl shadow-sm p-4 space-y-3">
-
         <h2 className="font-semibold text-[#2563eb]">
           Cost Breakdown
         </h2>
-
         <div className="flex justify-between text-sm">
           <span>Material Cost</span>
-          <span>
-            {formatCurrency(data.materialCost, currencyCode, currencySymbol)}
-          </span>
+          <span>{formatCurrency(data.materialCost, currencyCode, currencySymbol)}</span>
         </div>
-
         <div className="flex justify-between text-sm">
           <span>Production Cost</span>
-          <span>
-            {formatCurrency(data.productionCost, currencyCode, currencySymbol)}
-          </span>
+          <span>{formatCurrency(data.productionCost, currencyCode, currencySymbol)}</span>
         </div>
-
         <div className="flex justify-between text-sm">
           <span>Other Expense</span>
-          <span>
-            {formatCurrency(data.otherExpense, currencyCode, currencySymbol)}
-          </span>
+          <span>{formatCurrency(data.otherExpense, currencyCode, currencySymbol)}</span>
         </div>
-
         <div className="flex justify-between text-sm text-red-600">
           <span>Debt Exposure</span>
-          <span>
-            {formatCurrency(data.debt, currencyCode, currencySymbol)}
-          </span>
+          <span>{formatCurrency(data.debt, currencyCode, currencySymbol)}</span>
         </div>
-
       </div>
-
-      {/* SHARE */}
+      {/* EXPORT REPORT */}
+      <div className="bg-white p-3 rounded-xl shadow-sm space-y-2">
+        <h2 className="text-sm font-semibold text-[#0d1b3e]">
+          Export Report
+        </h2>
+        <button
+          onClick={() => alert("Coming Soon")}
+          className="w-full h-10 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
+        >
+          📊 Export Excel
+        </button>
+        <button
+          onClick={() => alert("Coming Soon")}
+          className="w-full h-10 bg-blue-50 text-[#2563eb] rounded-lg text-sm font-semibold"
+        >
+          📄 Export PDF
+        </button>
+      </div>
+      {/* PREMIUM / SHARE */}
       {isPremium ? (
         <div className="grid grid-cols-2 gap-3">
-
           <button
             onClick={handleWhatsApp}
             className="w-full h-11 bg-green-600 text-white rounded-lg font-semibold"
           >
             Share WhatsApp
           </button>
-
           <button
             onClick={handleEmail}
             className="w-full h-11 bg-gray-800 text-white rounded-lg font-semibold"
           >
             Share Email
           </button>
-
         </div>
       ) : (
         <div className="bg-white p-4 rounded-xl shadow-sm text-center space-y-2">
-
-          <p className="text-sm font-semibold text-[#0d1b3e]">
-            🔒 Premium Feature
-          </p>
-
+          <p className="text-sm font-semibold text-[#0d1b3e]">🔒 Premium Feature</p>
           <p className="text-xs text-gray-500">
             Upgrade to unlock reports & history
           </p>
-
           <button className="bg-black text-white px-4 py-2 rounded-lg text-sm">
             Upgrade
           </button>
-
         </div>
       )}
-
     </div>
   )
 }
