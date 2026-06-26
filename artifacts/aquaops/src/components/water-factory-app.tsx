@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react"
 import { Dashboard } from "@/components/screens/dashboard"
 import { Production } from "@/components/screens/production"
@@ -22,235 +20,106 @@ import { getCurrentFactory } from "@/lib/current-factory"
 import { AdminDashboard } from "@/components/screens/admin-dashboard"
 import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
-import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { AdminCustomers } from "@/components/screens/admin-customers"
+import { MigrationWizard } from "@/components/screens/migration-wizard"
 
 export default function WaterFactoryApp() {
 
-  const [activeTab, setActiveTab] =
-    useState("dashboard")
-
-  const [
-    factoryName,
-    setFactoryNameState,
-  ] = useState<string | null>(null)
-
+  const [activeTab, setActiveTab] = useState("dashboard")
+  const [factoryName, setFactoryNameState] = useState<string | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
+  const { user, loading } = useAuth()
 
-  // GLOBAL AUTH
-  const { user, loading } =
-    useAuth()
-
-  // LOAD FACTORY
   useEffect(() => {
-
     const loadFactory = async () => {
-
       try {
-
-        // WAIT FOR AUTH HYDRATION
         if (loading) return
 
-        // NO USER
         if (!user) {
-
-          // SEND TO MAIN ENTRY FLOW
           navigate("/")
-
           return
         }
 
-        // GET CURRENT FACTORY
-        const factory =
-          await getCurrentFactory()
+        const factory = await getCurrentFactory()
 
-        // FACTORY FOUND
         if (factory) {
+          setFactoryNameState(factory.name)
+          localStorage.setItem("factoryName", factory.name)
 
-          setFactoryNameState(
-            factory.name
-          )
-
-          // OPTIONAL UI CACHE
-          localStorage.setItem(
-            "factoryName",
-            factory.name
-          )
-
-          // KEEP EXISTING TRIAL LOGIC
-          if (
-            !localStorage.getItem(
-              "trialStart"
-            )
-          ) {
-
-            localStorage.setItem(
-              "trialStart",
-              new Date().toISOString()
-            )
+          if (!localStorage.getItem("trialStart")) {
+            localStorage.setItem("trialStart", new Date().toISOString())
           }
 
           return
         }
 
-        // NO FACTORY FOUND
-        // RETURN TO ENTRY FLOW
         navigate("/")
 
       } catch (err) {
-
         console.error(err)
-
         navigate("/")
       }
     }
 
     loadFactory()
-
   }, [user, loading, navigate])
 
-  // WAIT FOR AUTH
-  if (loading) {
-    return null
-  }
+  if (loading) return null
+  if (!factoryName) return null
 
-  // WAIT FOR FACTORY
-  if (!factoryName) {
-    return null
-  }
-
-  // SCREEN RENDERER
   const renderScreen = () => {
-
-    if (
-      activeTab === "dashboard"
-    ) {
-      return (
-        <Dashboard
-          setActiveTab={
-            setActiveTab
-          }
-        />
-      )
+    if (activeTab === "dashboard") {
+      return <Dashboard setActiveTab={setActiveTab} />
     }
-
-    if (
-      activeTab === "production"
-    ) {
+    if (activeTab === "production") {
       return <Production />
     }
-
-    if (
-      activeTab === "sales"
-    ) {
+    if (activeTab === "sales") {
       return <Sales />
     }
-
-    if (
-      activeTab === "expenses"
-    ) {
+    if (activeTab === "expenses") {
       return <Expenses />
     }
-
-    if (
-      activeTab === "debts"
-    ) {
+    if (activeTab === "debts") {
       return <Debts />
     }
-
-    if (
-      activeTab === "reports"
-    ) {
-      return (
-        <Reports
-          setActiveTab={
-            setActiveTab
-          }
-        />
-      )
+    if (activeTab === "reports") {
+      return <Reports setActiveTab={setActiveTab} />
     }
-
-    if (
-      activeTab === "loans"
-    ) {
+    if (activeTab === "loans") {
       return <Loans />
     }
-
-    if (
-      activeTab === "bank"
-    ) {
+    if (activeTab === "bank") {
       return <Bank />
     }
-
-    if (
-      activeTab === "account"
-    ) {
+    if (activeTab === "account") {
       return <AccountScreen />
     }
-
-if (
-  activeTab === "history"
-) {
-  return <HistoryScreen setActiveTab={setActiveTab} />
-}
-if (
-  activeTab === "migration"
-) {
-  return <MigrationWizard setActiveTab={setActiveTab} />
-}
-if (
-  activeTab ===
-  "admin-dashboard"
-) {
-  return (
-   <AdminDashboard
-  onNavigate={setActiveTab}
-/>
-  )
-}
-
-if (
-  activeTab ===
-  "admin-subscriptions"
-) {
-  return (
-    <AdminSubscriptions />
-  )
-}
-if (
-  activeTab ===
-  "admin-payments"
-) {
-  return (
-    <AdminPayments />
-  )
-}
-if (
-  activeTab ===
-  "admin-revenue"
-) {
-  return (
-    <AdminRevenue />
-  )
-}
-if (
-  activeTab ===
-  "admin-customers"
-) {
-  return (
-    <AdminCustomers />
-  )
-}
-    return (
-      <Dashboard
-        setActiveTab={
-          setActiveTab
-        }
-      />
-    )
+    if (activeTab === "history") {
+      return <HistoryScreen setActiveTab={setActiveTab} />
+    }
+    if (activeTab === "migration") {
+      return <MigrationWizard setActiveTab={setActiveTab} />
+    }
+    if (activeTab === "admin-dashboard") {
+      return <AdminDashboard onNavigate={setActiveTab} />
+    }
+    if (activeTab === "admin-subscriptions") {
+      return <AdminSubscriptions />
+    }
+    if (activeTab === "admin-payments") {
+      return <AdminPayments />
+    }
+    if (activeTab === "admin-revenue") {
+      return <AdminRevenue />
+    }
+    if (activeTab === "admin-customers") {
+      return <AdminCustomers />
+    }
+    return <Dashboard setActiveTab={setActiveTab} />
   }
 
-  // MAIN APP
   return (
     <ProtectedRoute>
 
@@ -261,27 +130,18 @@ if (
 
           {/* LOGO + FACTORY */}
           <div className="flex items-center gap-2">
-
             <img
               src="/icon-192.png"
               alt="AquaOps Logo"
               className="w-8 h-8 rounded"
             />
-
             <div>
-
-              <h1 className="text-sm font-bold text-[#0d1b3e]">
-                AquaOps
-              </h1>
-
-              <p className="text-[10px] text-gray-400">
-                {factoryName}
-              </p>
-
+              <h1 className="text-sm font-bold text-[#0d1b3e]">AquaOps</h1>
+              <p className="text-[10px] text-gray-400">{factoryName}</p>
             </div>
           </div>
 
-                   {/* ACTIONS */}
+          {/* ACTIONS */}
           <div className="flex gap-2 items-center">
 
             {/* ADMIN */}
@@ -303,7 +163,8 @@ if (
               </button>
 
               {showDropdown && (
-                <>
+                <div>
+
                   {/* BACKDROP */}
                   <div
                     className="fixed inset-0 z-40"
@@ -323,7 +184,7 @@ if (
                       </p>
                     </div>
 
-                    {/* RENEW */}
+                    {/* BILLING CENTRE */}
                     <button
                       onClick={() => {
                         setShowDropdown(false)
@@ -346,12 +207,15 @@ if (
                     </button>
 
                   </div>
-                </>
+
+                </div>
               )}
 
             </div>
 
-          </div>   
+          </div>
+
+        </div>
 
         {/* SCREEN */}
         <div className="flex-1 overflow-y-auto px-2 py-1">
@@ -361,9 +225,7 @@ if (
         {/* NAV */}
         <BottomNav
           activeTab={activeTab}
-          setActiveTab={
-            setActiveTab
-          }
+          setActiveTab={setActiveTab}
         />
 
       </div>
