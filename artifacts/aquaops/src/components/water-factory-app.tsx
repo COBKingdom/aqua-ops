@@ -184,15 +184,15 @@ export default function WaterFactoryApp() {
                       </p>
                     </div>
 
-                    {/* BILLING CENTRE */}
+                    {/* ACCOUNT */}
                     <button
                       onClick={() => {
                         setShowDropdown(false)
                         setActiveTab("account")
                       }}
-                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#2563eb] hover:bg-blue-50 border-b border-gray-50"
+                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#0d1b3e] hover:bg-gray-50 border-b border-gray-50"
                     >
-                      🔄 Renew Subscription
+                      👤 Account & Billing
                     </button>
 
                     {/* SIGN OUT */}
