@@ -4,6 +4,7 @@ import { resetPassword } from "@/lib/auth"
 import { supabase } from "@/lib/supabase"
 
 export function ForgotPasswordScreen() {
+  const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)

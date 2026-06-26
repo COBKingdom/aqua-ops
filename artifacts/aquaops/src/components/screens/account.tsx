@@ -122,7 +122,7 @@ export function AccountScreen() {
   const PLANS = [
     {
       id: "monthly",
-      name: "Professional",
+      name: "Standard",
       cycle: "Monthly",
       price: "₦10,000",
       period: "/ month",
@@ -132,7 +132,7 @@ export function AccountScreen() {
     },
     {
       id: "annual",
-      name: "Professional",
+      name: "Standard",
       cycle: "Annual",
       price: "₦108,000",
       period: "/ year",
@@ -172,23 +172,6 @@ export function AccountScreen() {
         </p>
       </div>
 
-      {/* ACCOUNT IDENTITY */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-[#0d1b3e] flex items-center justify-center text-white font-bold text-lg">
-          {email ? email[0].toUpperCase() : "?"}
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-[#0d1b3e] truncate">{email || "—"}</p>
-          <p className="text-xs text-gray-400">
-            {isAdmin ? "Platform Administrator" : customer?.factory_name || "AquaOps User"}
-          </p>
-        </div>
-        {isAdmin && (
-          <span className="ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-semibold shrink-0">
-            Admin
-          </span>
-        )}
-      </div>
 
       {isAdmin ? (
 

@@ -8,6 +8,7 @@ import { Expenses } from "@/components/screens/expenses"
 import { Debts } from "@/components/screens/debts"
 import { BottomNav } from "@/components/bottom-nav"
 import { setFactoryName } from "@/lib/factory"
+import { signOutUser } from "@/lib/auth"
 import { Reports } from "@/components/screens/reports"
 import { useLocation } from "wouter"
 import { Loans } from "@/components/screens/loans"
@@ -280,64 +281,77 @@ if (
             </div>
           </div>
 
-          {/* ACTIONS */}
-          <div className="flex gap-2">
+                   {/* ACTIONS */}
+          <div className="flex gap-2 items-center">
 
-            {/* ACCOUNT */}
+            {/* ADMIN */}
             <button
-              onClick={() => {
-                setActiveTab(
-                  "account"
-                )
-              }}
-              className="text-xs bg-[#0d1b3e] text-white px-3 py-1.5 rounded-lg"
+              onClick={() => setActiveTab("admin-dashboard")}
+              className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
             >
-              Account
+              Admin
             </button>
 
-{/* ADMIN */}
-<button
-  onClick={() =>
-    setActiveTab(
-      "admin-dashboard"
-    )
-  }
-  className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
->
-  Admin
-</button>
+            {/* AVATAR + DROPDOWN */}
+            <div className="relative">
 
-            {/* CHANGE FACTORY */}
-            <button
-              onClick={() => {
+              <button
+                onClick={() => setShowDropdown((v) => !v)}
+                className="w-9 h-9 rounded-full bg-[#0d1b3e] text-white font-bold text-sm flex items-center justify-center shadow-sm"
+              >
+                {factoryName?.[0]?.toUpperCase() ?? "?"}
+              </button>
 
-                const newName =
-                  prompt(
-                    "Enter new factory name"
-                  )
+              {showDropdown && (
+                <>
+                  {/* BACKDROP */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowDropdown(false)}
+                  />
 
-                if (
-                  newName &&
-                  newName.trim() !== ""
-                ) {
+                  {/* MENU */}
+                  <div className="absolute right-0 top-11 z-50 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
 
-                  setFactoryName(
-                    newName
-                  )
+                    {/* IDENTITY */}
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                      <p className="text-xs font-bold text-[#0d1b3e] truncate">
+                        {factoryName}
+                      </p>
+                      <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                        {user?.email ?? ""}
+                      </p>
+                    </div>
 
-                  setFactoryNameState(
-                    newName
-                  )
-                }
+                    {/* RENEW */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false)
+                        setActiveTab("account")
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#2563eb] hover:bg-blue-50 border-b border-gray-50"
+                    >
+                      🔄 Renew Subscription
+                    </button>
 
-              }}
-              className="text-xs bg-gray-200 px-3 py-1.5 rounded-lg"
-            >
-              Change
-            </button>
+                    {/* SIGN OUT */}
+                    <button
+                      onClick={async () => {
+                        setShowDropdown(false)
+                        await signOutUser()
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Sign Out
+                    </button>
 
-          </div>
-        </div>
+                  </div>
+                </>
+              )}
+
+            </div>
+
+          </div>   
 
         {/* SCREEN */}
         <div className="flex-1 overflow-y-auto px-2 py-1">
