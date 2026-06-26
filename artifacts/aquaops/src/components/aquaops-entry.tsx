@@ -1,346 +1,289 @@
-
-
 import { useState } from "react"
-
-import {
-  Factory,
-  Wallet,
-  BarChart3,
-  Droplets,
-} from "lucide-react"
-
+import { Factory, Wallet, BarChart3, Droplets } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 export function AquaOpsEntry() {
+  const [isLogin, setIsLogin] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [factoryName, setFactoryName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
+  const [infoMsg, setInfoMsg] = useState("")
+  const [showResend, setShowResend] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
 
-  const [isLogin, setIsLogin] =
-    useState(false)
+  const clearMessages = () => {
+    setErrorMsg("")
+    setInfoMsg("")
+    setShowResend(false)
+  }
 
-  const [loading, setLoading] =
-    useState(false)
+  const friendlyError = (msg: string): string => {
+    const m = msg.toLowerCase()
+    if (m.includes("invalid login credentials") || m.includes("invalid credentials")) {
+      return "Incorrect email or password. Please try again or use Forgot Password."
+    }
+    if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+      return "Please verify your email address before logging in."
+    }
+    if (m.includes("already registered") || m.includes("already exists")) {
+      return "This email address is already registered. Please log in or reset your password."
+    }
+    if (m.includes("rate limit") || m.includes("too many")) {
+      return "Too many attempts. Please wait a moment and try again."
+    }
+    if (m.includes("password") && m.includes("short")) {
+      return "Password must be at least 6 characters."
+    }
+    return msg
+  }
 
-  const [factoryName, setFactoryName] =
-    useState("")
+  const handleResendVerification = async () => {
+    setResendLoading(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      })
+      if (error) {
+        setErrorMsg("Could not resend email. Please try again.")
+      } else {
+        setInfoMsg("Verification email sent. Please check your inbox.")
+        setShowResend(false)
+      }
+    } catch {
+      setErrorMsg("Something went wrong. Please try again.")
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
-  const [email, setEmail] =
-    useState("")
+  const handleSubmit = async () => {
+    clearMessages()
 
-  const [password, setPassword] =
-    useState("")
+    if (!email || !password) {
+      setErrorMsg("Please enter your email and password.")
+      return
+    }
 
-const handleSubmit = async () => {
-  try {
     setLoading(true)
 
-    // LOGIN
-    if (isLogin) {
+    try {
 
-      const {
-        data: authData,
-        error,
-      } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // ── LOGIN ────────────────────────────────────────────────
+      if (isLogin) {
 
-      if (error) {
+        const { data: authData, error } =
+          await supabase.auth.signInWithPassword({ email, password })
 
-        setLoading(false)
+        if (error) {
+          const isUnverified =
+            error.message.toLowerCase().includes("not confirmed") ||
+            error.message.toLowerCase().includes("email not confirmed")
 
-        if (
-          error.message
-            .toLowerCase()
-            .includes("invalid login credentials")
-        ) {
+          setErrorMsg(friendlyError(error.message))
 
-          alert(
-            "Account not found. Please create an account first."
-          )
+          if (isUnverified) setShowResend(true)
 
-        } else {
-
-          alert(error.message)
-
+          return
         }
 
+        // ── Check for existing membership ────────────────────
+        const { data: membership } = await supabase
+          .from("factory_users")
+          .select("factory_id")
+          .eq("user_id", authData.user.id)
+          .maybeSingle()
+
+        // ── Existing member → go straight to dashboard ───────
+        if (membership) {
+          window.location.href = "/aquaops"
+          return
+        }
+
+        // ── First login after email verification ─────────────
+        const pendingFactoryName =
+          authData.user.user_metadata?.pending_factory_name ||
+          localStorage.getItem("pendingFactoryName")
+
+        if (!pendingFactoryName) {
+          setErrorMsg(
+            "Factory name not found. Please register again or contact support."
+          )
+          return
+        }
+
+        // ── Guard: check if factory already exists for user ──
+        const { data: existingFactory } = await supabase
+          .from("factories")
+          .select("id")
+          .eq("user_id", authData.user.id)
+          .maybeSingle()
+
+        let factoryId: string
+
+        if (existingFactory) {
+          factoryId = existingFactory.id
+        } else {
+          const { data: newFactory, error: factoryError } = await supabase
+            .from("factories")
+            .insert({
+              user_id: authData.user.id,
+              name: pendingFactoryName,
+              currency_code: "NGN",
+              currency_symbol: "₦",
+            })
+            .select("id")
+            .single()
+
+          if (factoryError || !newFactory) {
+            setErrorMsg(
+              "Failed to create your factory. Please try logging in again."
+            )
+            return
+          }
+
+          factoryId = newFactory.id
+        }
+
+        // ── Guard: check if membership already exists ────────
+        const { data: existingMembership } = await supabase
+          .from("factory_users")
+          .select("factory_id")
+          .eq("user_id", authData.user.id)
+          .maybeSingle()
+
+        if (!existingMembership) {
+          const { error: membershipError } = await supabase
+            .from("factory_users")
+            .insert({
+              factory_id: factoryId,
+              user_id: authData.user.id,
+              role: "owner",
+            })
+
+          if (membershipError) {
+            setErrorMsg("Failed to link your account to the factory. Please contact support.")
+            return
+          }
+        }
+
+        // ── Guard: check if subscription already exists ──────
+        const { data: existingSubscription } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", authData.user.id)
+          .maybeSingle()
+
+        if (!existingSubscription) {
+          const startedAt = new Date()
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + 60)
+
+          const { error: subscriptionError } = await supabase
+            .from("subscriptions")
+            .insert({
+              user_id: authData.user.id,
+              plan: "Starter",
+              status: "Trial",
+              started_at: startedAt.toISOString(),
+              expires_at: expiresAt.toISOString(),
+            })
+
+          if (subscriptionError) {
+            setErrorMsg("Failed to activate trial. Please contact support.")
+            return
+          }
+        }
+
+        localStorage.removeItem("pendingFactoryName")
+        window.location.href = "/aquaops"
         return
       }
 
-      console.log(
-        "LOGIN SUCCESS:",
-        authData
-      )
+      // ── SIGNUP ───────────────────────────────────────────────
 
-const {
-  data: membership,
-  error: membershipLookupError,
-} = await supabase
-  .from("factory_users")
-  .select("factory_id")
-  .eq(
-    "user_id",
-    authData.user.id
-  )
-  .maybeSingle()
-
-console.log(
-  "MEMBERSHIP:",
-  membership
-)
-
-console.log(
-  "MEMBERSHIP LOOKUP ERROR:",
-  membershipLookupError
-)
-
-      // FIRST LOGIN AFTER EMAIL VERIFICATION
-
-     if (!membership) {
-
-  const pendingFactoryName =
-    authData.user.user_metadata?.pending_factory_name ||
-    localStorage.getItem(
-      "pendingFactoryName"
-    )
-
-  console.log(
-    "PENDING FACTORY:",
-    pendingFactoryName
-  )
-
-  if (!pendingFactoryName) {
-
-    console.error(
-      "No pending factory found"
-    )
-
-    window.location.href =
-      "/onboarding"
-
-    return
-  }
-
-  const {
-    data: newFactory,
-    error: factoryError,
-  } = await supabase
-    .from("factories")
-    .insert({
-      user_id: authData.user.id,
-      name: pendingFactoryName,
-      currency_code: "NGN",
-      currency_symbol: "₦",
-    })
-    .select("id")
-    .single()
-
-  console.log(
-    "FACTORY ERROR:",
-    factoryError
-  )
-
-  if (
-    factoryError ||
-    !newFactory
-  ) {
-
-    alert(
-      factoryError?.message ||
-      "Factory creation failed"
-    )
-
-    return
-  }
-
-  const {
-    error: membershipError,
-  } = await supabase
-    .from("factory_users")
-    .insert({
-      factory_id: newFactory.id,
-      user_id: authData.user.id,
-      role: "owner",
-    })
-
-  console.log(
-    "MEMBERSHIP ERROR:",
-    membershipError
-  )
-
-  if (membershipError) {
-
-    alert(
-      membershipError.message
-    )
-
-    return
-  }
-
-  const startedAt =
-    new Date()
-
-  const expiresAt =
-    new Date()
-
-  expiresAt.setDate(
-    expiresAt.getDate() + 60
-  )
-
-  console.log(
-    "CREATING SUBSCRIPTION FOR:",
-    authData.user.id
-  )
-
-  const {
-    error: subscriptionError,
-  } = await supabase
-    .from("subscriptions")
-    .insert({
-      user_id: authData.user.id,
-      plan: "Starter",
-      status: "Trial",
-      started_at:
-        startedAt.toISOString(),
-      expires_at:
-        expiresAt.toISOString(),
-    })
-
-  console.log(
-    "SUBSCRIPTION ERROR:",
-    subscriptionError
-  )
-
-  if (subscriptionError) {
-
-    alert(
-      subscriptionError.message
-    )
-
-    return
-  }
-
-  localStorage.removeItem(
-    "pendingFactoryName"
-  )
-
-  window.location.href =
-    "/aquaops"
-
-  return
-}
-      
-      // EXISTING USER
-
-window.location.href =
-  "/aquaops"
-
-      return
-    }
-
-    // SIGNUP
-
-    if (
-      !factoryName ||
-      !email ||
-      !password
-    ) {
-
-      alert(
-        "Please complete all fields"
-      )
-
-      return
-    }
-
-    const {
-      error: signupError,
-    } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          pending_factory_name: factoryName,
-        },
-      },
-    })
-
-    if (signupError) {
-
-      if (
-        signupError.message
-          .toLowerCase()
-          .includes("already")
-      ) {
-
-        alert(
-          "This email already has an AquaOps account. Please login instead."
-        )
-
-      } else {
-
-        alert(
-          signupError.message
-        )
-
+      if (!factoryName.trim()) {
+        setErrorMsg("Please enter your factory name.")
+        return
       }
 
-      return
+      if (password.length < 6) {
+        setErrorMsg("Password must be at least 6 characters.")
+        return
+      }
+
+      const { data: signupData, error: signupError } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { pending_factory_name: factoryName.trim() },
+          },
+        })
+
+      if (signupError) {
+        setErrorMsg(friendlyError(signupError.message))
+        return
+      }
+
+      // ── Supabase silent duplicate detection ─────────────────
+      // When email confirmation is ON, Supabase returns no error for
+      // already-registered emails, but the user object has identities: []
+      if (
+        signupData.user &&
+        Array.isArray(signupData.user.identities) &&
+        signupData.user.identities.length === 0
+      ) {
+        setErrorMsg(
+          "This email address is already registered. Please log in or use Forgot Password."
+        )
+        return
+      }
+
+      // ── Unverified existing account edge case ────────────────
+      if (signupData.user && !signupData.session) {
+        localStorage.setItem("pendingFactoryName", factoryName.trim())
+        setInfoMsg(
+          "Account created successfully. Please check your email and click the verification link before logging in."
+        )
+        setIsLogin(true)
+        setEmail(email)
+        setPassword("")
+        setFactoryName("")
+        return
+      }
+
+      localStorage.setItem("pendingFactoryName", factoryName.trim())
+      setInfoMsg(
+        "Account created. Please verify your email before logging in."
+      )
+      setIsLogin(true)
+
+    } catch (err) {
+      console.error(err)
+      setErrorMsg("Something went wrong. Please try again.")
+    } finally {
+      setLoading(false)
     }
-
-    localStorage.setItem(
-      "pendingFactoryName",
-      factoryName
-    )
-
-    alert(
-      "Account created successfully. Please verify your email before login."
-    )
-
-    setIsLogin(true)
-
-  } catch (error) {
-
-    console.error(error)
-
-    alert(
-      "Something went wrong"
-    )
-
-  } finally {
-
-    setLoading(false)
-
   }
-}
 
   return (
     <div className="min-h-screen bg-[#eef0f5]">
-
-      {/* HERO */}
       <div className="max-w-md mx-auto px-4 pt-5 pb-16 space-y-5">
 
         {/* BRAND */}
         <div className="text-center space-y-3">
-
           <div className="flex justify-center">
-            <img
-              src="/icon-192.png"
-              alt="AquaOps"
-              className="w-16 h-16 rounded-2xl shadow-sm"
-            />
+            <img src="/icon-192.png" alt="AquaOps" className="w-16 h-16 rounded-2xl shadow-sm" />
           </div>
-
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-[#0d1b3e] leading-tight">
               Stop guessing your business numbers
             </h1>
-
             <div className="flex justify-center mt-3">
-              <svg
-                width="90"
-                height="8"
-                viewBox="0 0 120 12"
-              >
+              <svg width="90" height="8" viewBox="0 0 120 12">
                 <path
                   d="M4 8 Q60 0 116 8"
                   stroke="#f5a623"
@@ -350,118 +293,45 @@ window.location.href =
                 />
               </svg>
             </div>
-
             <p className="text-gray-500 mt-3 text-base leading-relaxed">
-              Track your production,
-              sales, expenses, debts and
-              profit in one operational
-              dashboard.
+              Track your production, sales, expenses, debts and profit in one operational dashboard.
             </p>
           </div>
-
         </div>
 
-{/* FEATURE CARDS */}
-<div className="space-y-3">
-
-  {/* HERO STRIP */}
-  <div className="bg-[#0d1b3e] text-white rounded-3xl p-4 shadow-sm">
-
-    <p className="text-sm opacity-70">
-      AquaOps
-    </p>
-
-    <h2 className="text-lg font-semibold mt-1 leading-snug">
-      Built for water factories to manage daily operations from anywhere.
-    </h2>
-
-  </div>
-
-  {/* COMPACT FEATURES */}
-  <div className="grid grid-cols-2 gap-2">
-
-    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
-      <Wallet
-        size={18}
-        className="text-blue-600"
-      />
-
-      <div>
-        <p className="text-sm font-medium">
-          Expenses
-        </p>
-
-        <p className="text-[11px] text-gray-500">
-          Track costs
-        </p>
-      </div>
-    </div>
-
-    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
-      <BarChart3
-        size={18}
-        className="text-blue-600"
-      />
-
-      <div>
-        <p className="text-sm font-medium">
-          Reports
-        </p>
-
-        <p className="text-[11px] text-gray-500">
-          Profit insights
-        </p>
-      </div>
-    </div>
-
-    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
-      <Factory
-        size={18}
-        className="text-blue-600"
-      />
-
-      <div>
-        <p className="text-sm font-medium">
-          Production
-        </p>
-
-        <p className="text-[11px] text-gray-500">
-          Factory output
-        </p>
-      </div>
-    </div>
-
-    <div className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
-      <Droplets
-        size={18}
-        className="text-blue-600"
-      />
-
-      <div>
-        <p className="text-sm font-medium">
-          Debts
-        </p>
-
-        <p className="text-[11px] text-gray-500">
-          Reduce debt
-        </p>
-      </div>
-    </div>
-
-  </div>
-
-</div>
+        {/* FEATURE CARDS */}
+        <div className="space-y-3">
+          <div className="bg-[#0d1b3e] text-white rounded-3xl p-4 shadow-sm">
+            <p className="text-sm opacity-70">AquaOps</p>
+            <h2 className="text-lg font-semibold mt-1 leading-snug">
+              Built for water factories to manage daily operations from anywhere.
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { Icon: Wallet,   label: "Expenses",   sub: "Track costs"     },
+              { Icon: BarChart3,label: "Reports",    sub: "Profit insights" },
+              { Icon: Factory,  label: "Production", sub: "Factory output"  },
+              { Icon: Droplets, label: "Debts",      sub: "Reduce debt"     },
+            ].map(({ Icon, label, sub }) => (
+              <div key={label} className="bg-white rounded-2xl px-3 py-2 shadow-sm flex items-center gap-2">
+                <Icon size={18} className="text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-[11px] text-gray-500">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* AUTH CARD */}
         <div className="bg-white rounded-3xl p-4 shadow-sm space-y-3">
 
           <div>
             <h2 className="text-2xl font-bold text-[#0d1b3e]">
-              {isLogin
-                ? "Welcome back"
-                : "Start Free Trial"}
+              {isLogin ? "Welcome back" : "Start Free Trial"}
             </h2>
-
             <p className="text-sm text-gray-500 mt-1">
               {isLogin
                 ? "Login to continue managing your factory"
@@ -469,16 +339,35 @@ window.location.href =
             </p>
           </div>
 
+          {/* INFO MESSAGE */}
+          {infoMsg && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3">
+              <p className="text-sm text-blue-700">{infoMsg}</p>
+            </div>
+          )}
+
+          {/* ERROR MESSAGE */}
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 space-y-2">
+              <p className="text-sm text-red-700">{errorMsg}</p>
+              {showResend && (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="text-sm font-semibold text-[#2563eb] underline disabled:opacity-50"
+                >
+                  {resendLoading ? "Sending…" : "Resend Verification Email"}
+                </button>
+              )}
+            </div>
+          )}
+
           {!isLogin && (
             <input
               type="text"
               placeholder="Factory Name"
               value={factoryName}
-              onChange={(e) =>
-                setFactoryName(
-                  e.target.value
-                )
-              }
+              onChange={(e) => { clearMessages(); setFactoryName(e.target.value) }}
               className="w-full p-4 rounded-2xl border border-gray-200 outline-none"
             />
           )}
@@ -487,9 +376,7 @@ window.location.href =
             type="email"
             placeholder="Email Address"
             value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
+            onChange={(e) => { clearMessages(); setEmail(e.target.value) }}
             className="w-full p-4 rounded-2xl border border-gray-200 outline-none"
           />
 
@@ -497,36 +384,22 @@ window.location.href =
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSubmit()
-              }
-            }}
+            onChange={(e) => { clearMessages(); setPassword(e.target.value) }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit() }}
             className="w-full p-4 rounded-2xl border border-gray-200 outline-none"
           />
 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-[#0d1b3e] text-white py-4 rounded-2xl font-medium"
+            className="w-full bg-[#0d1b3e] text-white py-4 rounded-2xl font-medium disabled:opacity-60"
           >
-            {loading
-              ? "Please wait..."
-              : isLogin
-              ? "Login"
-              : "Start Free Trial"}
+            {loading ? "Please wait…" : isLogin ? "Login" : "Start Free Trial"}
           </button>
 
           {isLogin && (
             <p
-              onClick={() => {
-                window.location.href = "/forgot-password"
-              }}
+              onClick={() => { window.location.href = "/forgot-password" }}
               className="text-sm text-center text-blue-600 cursor-pointer"
             >
               Forgot Password?
@@ -534,9 +407,7 @@ window.location.href =
           )}
 
           <p
-            onClick={() =>
-              setIsLogin(!isLogin)
-            }
+            onClick={() => { clearMessages(); setIsLogin(!isLogin) }}
             className="text-sm text-center text-blue-600 cursor-pointer"
           >
             {isLogin
@@ -547,7 +418,6 @@ window.location.href =
         </div>
 
       </div>
-
     </div>
   )
 }
