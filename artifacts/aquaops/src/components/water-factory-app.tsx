@@ -25,7 +25,6 @@ import { supabase } from "@/lib/supabase"
 
 function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false)
-
   useEffect(() => {
     const check = async () => {
       try {
@@ -44,7 +43,6 @@ function useIsAdmin() {
     }
     check()
   }, [])
-
   return isAdmin
 }
 
@@ -60,7 +58,6 @@ function AdminGuard({
   useEffect(() => {
     if (!isAdmin) setActiveTab("dashboard")
   }, [isAdmin, setActiveTab])
-
   if (!isAdmin) return null
   return <>{children}</>
 }
@@ -68,6 +65,7 @@ function AdminGuard({
 export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
+  const [factoryStatus, setFactoryStatus] = useState<string>("active")
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
   const { user, loading } = useAuth()
@@ -77,13 +75,11 @@ export default function WaterFactoryApp() {
     const loadFactory = async () => {
       try {
         if (loading) return
-        if (!user) {
-          navigate("/")
-          return
-        }
+        if (!user) { navigate("/"); return }
         const factory = await getCurrentFactory()
         if (factory) {
           setFactoryNameState(factory.name)
+          setFactoryStatus(factory.status || "active")
           localStorage.setItem("factoryName", factory.name)
           if (!localStorage.getItem("trialStart")) {
             localStorage.setItem("trialStart", new Date().toISOString())
@@ -102,40 +98,47 @@ export default function WaterFactoryApp() {
   if (loading) return null
   if (!factoryName) return null
 
+  // ── SUSPENDED SCREEN ───────────────────────────────────────
+  if (factoryStatus === "suspended") {
+    return (
+      <ProtectedRoute>
+        <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col items-center justify-center p-8 text-center">
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-xl font-bold text-[#0d1b3e] mb-2">Account Suspended</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Your account has been suspended. Please contact support to restore access.
+          </p>
+          <a
+            href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support%2C%0A%0AMy%20account%20has%20been%20suspended.%20Please%20assist."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#2563eb] text-white px-6 py-3 rounded-xl text-sm font-semibold mb-3"
+          >
+            Contact Support
+          </a>
+          <button
+            onClick={async () => { await signOutUser() }}
+            className="text-sm text-red-600 font-medium"
+          >
+            Sign Out
+          </button>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
   const renderScreen = () => {
-    if (activeTab === "dashboard") {
-      return <Dashboard setActiveTab={setActiveTab} />
-    }
-    if (activeTab === "production") {
-      return <Production />
-    }
-    if (activeTab === "sales") {
-      return <Sales />
-    }
-    if (activeTab === "expenses") {
-      return <Expenses />
-    }
-    if (activeTab === "debts") {
-      return <Debts />
-    }
-    if (activeTab === "reports") {
-      return <Reports setActiveTab={setActiveTab} />
-    }
-    if (activeTab === "loans") {
-      return <Loans />
-    }
-    if (activeTab === "bank") {
-      return <Bank />
-    }
-    if (activeTab === "account") {
-      return <AccountScreen />
-    }
-    if (activeTab === "history") {
-      return <HistoryScreen setActiveTab={setActiveTab} />
-    }
-    if (activeTab === "migration") {
-      return <MigrationWizard setActiveTab={setActiveTab} />
-    }
+    if (activeTab === "dashboard")           return <Dashboard setActiveTab={setActiveTab} />
+    if (activeTab === "production")          return <Production />
+    if (activeTab === "sales")               return <Sales />
+    if (activeTab === "expenses")            return <Expenses />
+    if (activeTab === "debts")               return <Debts />
+    if (activeTab === "reports")             return <Reports setActiveTab={setActiveTab} />
+    if (activeTab === "loans")               return <Loans />
+    if (activeTab === "bank")                return <Bank />
+    if (activeTab === "account")             return <AccountScreen />
+    if (activeTab === "history")             return <HistoryScreen setActiveTab={setActiveTab} />
+    if (activeTab === "migration")           return <MigrationWizard setActiveTab={setActiveTab} />
     if (activeTab === "admin-dashboard") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -181,20 +184,14 @@ export default function WaterFactoryApp() {
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm">
 
-          {/* LOGO + FACTORY */}
           <div className="flex items-center gap-2">
-            <img
-              src="/icon-192.png"
-              alt="AquaOps Logo"
-              className="w-8 h-8 rounded"
-            />
+            <img src="/icon-192.png" alt="AquaOps Logo" className="w-8 h-8 rounded" />
             <div>
               <h1 className="text-sm font-bold text-[#0d1b3e]">AquaOps</h1>
               <p className="text-[10px] text-gray-400">{factoryName}</p>
             </div>
           </div>
 
-          {/* ACTIONS */}
           <div className="flex gap-2 items-center">
 
             {isAdmin && (
@@ -216,18 +213,11 @@ export default function WaterFactoryApp() {
 
               {showDropdown && (
                 <div>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowDropdown(false)}
-                  />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
                   <div className="absolute right-0 top-11 z-50 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                      <p className="text-xs font-bold text-[#0d1b3e] truncate">
-                        {factoryName}
-                      </p>
-                      <p className="text-[11px] text-gray-400 truncate mt-0.5">
-                        {user?.email ?? ""}
-                      </p>
+                      <p className="text-xs font-bold text-[#0d1b3e] truncate">{factoryName}</p>
+                      <p className="text-[11px] text-gray-400 truncate mt-0.5">{user?.email ?? ""}</p>
                       {isAdmin && (
                         <span className="inline-block mt-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
                           Administrator
@@ -235,19 +225,13 @@ export default function WaterFactoryApp() {
                       )}
                     </div>
                     <button
-                      onClick={() => {
-                        setShowDropdown(false)
-                        setActiveTab("account")
-                      }}
+                      onClick={() => { setShowDropdown(false); setActiveTab("account") }}
                       className="w-full text-left px-4 py-3 text-sm font-medium text-[#0d1b3e] hover:bg-gray-50 border-b border-gray-50"
                     >
                       👤 Account & Billing
                     </button>
                     <button
-                      onClick={async () => {
-                        setShowDropdown(false)
-                        await signOutUser()
-                      }}
+                      onClick={async () => { setShowDropdown(false); await signOutUser() }}
                       className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
                     >
                       Sign Out
@@ -267,10 +251,7 @@ export default function WaterFactoryApp() {
         </div>
 
         {/* NAV */}
-        <BottomNav
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
       </div>
     </ProtectedRoute>
