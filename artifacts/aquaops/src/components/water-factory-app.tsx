@@ -22,6 +22,8 @@ import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers } from "@/components/screens/admin-customers"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
+import { AdminGuard } from "@/components/admin-guard"
+import { useIsAdmin } from "@/lib/admin"
 
 export default function WaterFactoryApp() {
 
@@ -30,6 +32,7 @@ export default function WaterFactoryApp() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
   const { user, loading } = useAuth()
+  const { isAdmin } = useIsAdmin()
 
   useEffect(() => {
     const loadFactory = async () => {
@@ -103,19 +106,39 @@ export default function WaterFactoryApp() {
       return <MigrationWizard setActiveTab={setActiveTab} />
     }
     if (activeTab === "admin-dashboard") {
-      return <AdminDashboard onNavigate={setActiveTab} />
+      return (
+        <AdminGuard setActiveTab={setActiveTab}>
+          <AdminDashboard onNavigate={setActiveTab} />
+        </AdminGuard>
+      )
     }
     if (activeTab === "admin-subscriptions") {
-      return <AdminSubscriptions />
+      return (
+        <AdminGuard setActiveTab={setActiveTab}>
+          <AdminSubscriptions />
+        </AdminGuard>
+      )
     }
     if (activeTab === "admin-payments") {
-      return <AdminPayments />
+      return (
+        <AdminGuard setActiveTab={setActiveTab}>
+          <AdminPayments />
+        </AdminGuard>
+      )
     }
     if (activeTab === "admin-revenue") {
-      return <AdminRevenue />
+      return (
+        <AdminGuard setActiveTab={setActiveTab}>
+          <AdminRevenue />
+        </AdminGuard>
+      )
     }
     if (activeTab === "admin-customers") {
-      return <AdminCustomers />
+      return (
+        <AdminGuard setActiveTab={setActiveTab}>
+          <AdminCustomers />
+        </AdminGuard>
+      )
     }
     return <Dashboard setActiveTab={setActiveTab} />
   }
@@ -144,13 +167,15 @@ export default function WaterFactoryApp() {
           {/* ACTIONS */}
           <div className="flex gap-2 items-center">
 
-            {/* ADMIN */}
-            <button
-              onClick={() => setActiveTab("admin-dashboard")}
-              className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
-            >
-              Admin
-            </button>
+            {/* ADMIN — only visible to admin users */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab("admin-dashboard")}
+                className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg"
+              >
+                Admin
+              </button>
+            )}
 
             {/* AVATAR + DROPDOWN */}
             <div className="relative">
@@ -182,6 +207,11 @@ export default function WaterFactoryApp() {
                       <p className="text-[11px] text-gray-400 truncate mt-0.5">
                         {user?.email ?? ""}
                       </p>
+                      {isAdmin && (
+                        <span className="inline-block mt-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                          Administrator
+                        </span>
+                      )}
                     </div>
 
                     {/* ACCOUNT */}
