@@ -5,7 +5,6 @@ import { Sales } from "@/components/screens/sales"
 import { Expenses } from "@/components/screens/expenses"
 import { Debts } from "@/components/screens/debts"
 import { BottomNav } from "@/components/bottom-nav"
-import { setFactoryName } from "@/lib/factory"
 import { signOutUser } from "@/lib/auth"
 import { Reports } from "@/components/screens/reports"
 import { useLocation } from "wouter"
@@ -22,49 +21,81 @@ import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers } from "@/components/screens/admin-customers"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
-import { AdminGuard } from "@/components/admin-guard"
-import { useIsAdmin } from "@/lib/admin"
+import { supabase } from "@/lib/supabase"
+
+function useIsAdmin() {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        if (!supabase) return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.email) return
+        const { data } = await supabase
+          .from("admin_users")
+          .select("id")
+          .eq("email", user.email)
+          .maybeSingle()
+        setIsAdmin(!!data)
+      } catch {
+        setIsAdmin(false)
+      }
+    }
+    check()
+  }, [])
+
+  return isAdmin
+}
+
+function AdminGuard({
+  isAdmin,
+  setActiveTab,
+  children,
+}: {
+  isAdmin: boolean
+  setActiveTab: (tab: string) => void
+  children: React.ReactNode
+}) {
+  useEffect(() => {
+    if (!isAdmin) setActiveTab("dashboard")
+  }, [isAdmin, setActiveTab])
+
+  if (!isAdmin) return null
+  return <>{children}</>
+}
 
 export default function WaterFactoryApp() {
-
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
   const { user, loading } = useAuth()
-  const { isAdmin } = useIsAdmin()
+  const isAdmin = useIsAdmin()
 
   useEffect(() => {
     const loadFactory = async () => {
       try {
         if (loading) return
-
         if (!user) {
           navigate("/")
           return
         }
-
         const factory = await getCurrentFactory()
-
         if (factory) {
           setFactoryNameState(factory.name)
           localStorage.setItem("factoryName", factory.name)
-
           if (!localStorage.getItem("trialStart")) {
             localStorage.setItem("trialStart", new Date().toISOString())
           }
-
           return
         }
-
         navigate("/")
-
       } catch (err) {
         console.error(err)
         navigate("/")
       }
     }
-
     loadFactory()
   }, [user, loading, navigate])
 
@@ -107,35 +138,35 @@ export default function WaterFactoryApp() {
     }
     if (activeTab === "admin-dashboard") {
       return (
-        <AdminGuard setActiveTab={setActiveTab}>
+        <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
           <AdminDashboard onNavigate={setActiveTab} />
         </AdminGuard>
       )
     }
     if (activeTab === "admin-subscriptions") {
       return (
-        <AdminGuard setActiveTab={setActiveTab}>
+        <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
           <AdminSubscriptions />
         </AdminGuard>
       )
     }
     if (activeTab === "admin-payments") {
       return (
-        <AdminGuard setActiveTab={setActiveTab}>
+        <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
           <AdminPayments />
         </AdminGuard>
       )
     }
     if (activeTab === "admin-revenue") {
       return (
-        <AdminGuard setActiveTab={setActiveTab}>
+        <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
           <AdminRevenue />
         </AdminGuard>
       )
     }
     if (activeTab === "admin-customers") {
       return (
-        <AdminGuard setActiveTab={setActiveTab}>
+        <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
           <AdminCustomers />
         </AdminGuard>
       )
@@ -145,7 +176,6 @@ export default function WaterFactoryApp() {
 
   return (
     <ProtectedRoute>
-
       <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">
 
         {/* HEADER */}
@@ -167,7 +197,6 @@ export default function WaterFactoryApp() {
           {/* ACTIONS */}
           <div className="flex gap-2 items-center">
 
-            {/* ADMIN — only visible to admin users */}
             {isAdmin && (
               <button
                 onClick={() => setActiveTab("admin-dashboard")}
@@ -177,9 +206,7 @@ export default function WaterFactoryApp() {
               </button>
             )}
 
-            {/* AVATAR + DROPDOWN */}
             <div className="relative">
-
               <button
                 onClick={() => setShowDropdown((v) => !v)}
                 className="w-9 h-9 rounded-full bg-[#0d1b3e] text-white font-bold text-sm flex items-center justify-center shadow-sm"
@@ -189,17 +216,11 @@ export default function WaterFactoryApp() {
 
               {showDropdown && (
                 <div>
-
-                  {/* BACKDROP */}
                   <div
                     className="fixed inset-0 z-40"
                     onClick={() => setShowDropdown(false)}
                   />
-
-                  {/* MENU */}
                   <div className="absolute right-0 top-11 z-50 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-
-                    {/* IDENTITY */}
                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                       <p className="text-xs font-bold text-[#0d1b3e] truncate">
                         {factoryName}
@@ -213,8 +234,6 @@ export default function WaterFactoryApp() {
                         </span>
                       )}
                     </div>
-
-                    {/* ACCOUNT */}
                     <button
                       onClick={() => {
                         setShowDropdown(false)
@@ -224,8 +243,6 @@ export default function WaterFactoryApp() {
                     >
                       👤 Account & Billing
                     </button>
-
-                    {/* SIGN OUT */}
                     <button
                       onClick={async () => {
                         setShowDropdown(false)
@@ -235,12 +252,9 @@ export default function WaterFactoryApp() {
                     >
                       Sign Out
                     </button>
-
                   </div>
-
                 </div>
               )}
-
             </div>
 
           </div>
@@ -259,7 +273,6 @@ export default function WaterFactoryApp() {
         />
 
       </div>
-
     </ProtectedRoute>
   )
 }
