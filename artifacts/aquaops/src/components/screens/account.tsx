@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { signOutUser } from "@/lib/auth"
+import { supportUrl } from "@/config/support"
 
 type Payment = {
   id: string
@@ -431,7 +432,7 @@ export function AccountScreen() {
 
             <button
               onClick={() =>
-                window.open("https://wa.me/2348000000000?text=Hi, I need help with my AquaOps subscription.", "_blank")
+                window.open(supportUrl("Hi, I need help with my AquaOps subscription."), "_blank")
               }
               className="w-full h-11 bg-white text-green-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
             >
