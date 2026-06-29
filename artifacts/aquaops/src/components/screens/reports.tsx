@@ -3,6 +3,17 @@ import { supabase } from "@/lib/supabase"
 import { getFactoryId, getFactoryCurrency } from "@/lib/factory"
 import { formatCurrency } from "@/lib/format"
 import { isPremiumUser } from "@/lib/premium"
+import {
+  TrendingUp,
+  TrendingDown,
+  Package,
+  Users,
+  Zap,
+  BarChart3,
+  FileText,
+  FileSpreadsheet,
+  History,
+} from "lucide-react"
 
 export function Reports({
   setActiveTab,
@@ -20,6 +31,7 @@ export function Reports({
     bottleProduction: 0,
     sachetStock: 0,
     bottleStock: 0,
+    productionLosses: 0,
   })
 
   const [period, setPeriod] = useState("today")
@@ -27,7 +39,7 @@ export function Reports({
   const [currencyCode, setCurrencyCode] = useState("NGN")
   const [currencySymbol, setCurrencySymbol] = useState("₦")
 
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     fromDate: "",
     toDate: "",
     product: "all",
@@ -49,12 +61,10 @@ export function Reports({
       startOfDay.setHours(0, 0, 0, 0)
       return startOfDay.toISOString().split("T")[0]
     }
-    if (period === "week") {
+    if (period === "week")
       return new Date(now.getTime() - 7 * 86400000).toISOString().split("T")[0]
-    }
-    if (period === "month") {
+    if (period === "month")
       return new Date(now.getTime() - 30 * 86400000).toISOString().split("T")[0]
-    }
   }
 
   const loadReport = async () => {
@@ -69,130 +79,120 @@ export function Reports({
       const dateFilter = getDateFilter()
 
       const { data: sales } = await supabase
-        .from("sales")
-        .select("*")
-        .eq("factory_id", factoryId)
-        .gte("date", dateFilter)
+        .from("sales").select("*").eq("factory_id", factoryId).gte("date", dateFilter)
 
       const { data: expenses } = await supabase
-        .from("expenses")
-        .select("*")
-        .eq("factory_id", factoryId)
-        .gte("created_at", dateFilter)
+        .from("expenses").select("*").eq("factory_id", factoryId).gte("created_at", dateFilter)
 
       const { data: production } = await supabase
-        .from("production")
-        .select("*")
-        .eq("factory_id", factoryId)
-        .gte("date", dateFilter)
+        .from("production").select("*").eq("factory_id", factoryId).gte("date", dateFilter)
 
       const { data: debts } = await supabase
-        .from("sales")
-        .select("*")
-        .eq("factory_id", factoryId)
-        .gt("balance", 0)
+        .from("sales").select("*").eq("factory_id", factoryId).gt("balance", 0)
 
-      const totalSales =
-        sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
-      const totalCosts =
-        expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-      const totalDebt =
-        debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+      const { data: losses } = await supabase
+        .from("production_losses").select("quantity").eq("factory_id", factoryId).gte("created_at", dateFilter)
 
-      const materialCost =
-        expenses
-          ?.filter((e) => e.cost_group === "Material Cost")
-          .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-      const productionCost =
-        expenses
-          ?.filter((e) => e.cost_group === "Production Cost")
-          .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
-      const otherExpense =
-        expenses
-          ?.filter((e) => e.cost_group === "Other Expense")
-          .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+      const totalSales   = sales?.reduce((s, i) => s + Number(i.total_amount || 0), 0) || 0
+      const totalCosts   = expenses?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+      const totalDebt    = debts?.reduce((s, i) => s + Number(i.balance || 0), 0) || 0
+      const totalLosses  = losses?.reduce((s, i) => s + Number(i.quantity || 0), 0) || 0
 
-      const sachetProduction =
-        production
-          ?.filter((p) => p.product_type === "sachet")
-          .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
-      const bottleProduction =
-        production
-          ?.filter((p) => p.product_type === "bottle")
-          .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+      const materialCost   = expenses?.filter((e) => e.cost_group === "Material Cost")
+        .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+      const productionCost = expenses?.filter((e) => e.cost_group === "Production Cost")
+        .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
+      const otherExpense   = expenses?.filter((e) => e.cost_group === "Other Expense")
+        .reduce((s, i) => s + Number(i.amount || 0), 0) || 0
 
-      const sachetSold =
-        sales
-          ?.filter((s) => s.product_type === "sachet")
-          .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
-      const bottleSold =
-        sales
-          ?.filter((s) => s.product_type === "bottle")
-          .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
+      const sachetProduction = production?.filter((p) => p.product_type === "sachet")
+        .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
+      const bottleProduction = production?.filter((p) => p.product_type === "bottle")
+        .reduce((s, i) => s + Number(i.bags_produced || 0), 0) || 0
 
-      const sachetStock = sachetProduction - sachetSold
-      const bottleStock = bottleProduction - bottleSold
+      const sachetSold = sales?.filter((s) => s.product_type === "sachet")
+        .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
+      const bottleSold = sales?.filter((s) => s.product_type === "bottle")
+        .reduce((s, i) => s + Number(i.bags_sold || 0), 0) || 0
 
       setData({
-        sales: totalSales,
-        costs: totalCosts,
-        debt: totalDebt,
+        sales:            totalSales,
+        costs:            totalCosts,
+        debt:             totalDebt,
         materialCost,
         productionCost,
         otherExpense,
         sachetProduction,
         bottleProduction,
-        sachetStock,
-        bottleStock,
+        sachetStock:      sachetProduction - sachetSold,
+        bottleStock:      bottleProduction - bottleSold,
+        productionLosses: totalLosses,
       })
     } catch (error) {
       console.error(error)
     }
   }
 
-  useEffect(() => {
-    loadReport()
-  }, [period])
+  useEffect(() => { loadReport() }, [period])
 
-  const profit = data.sales - data.costs
-  const netCashProfit = profit - data.debt
+  const profit       = data.sales - data.costs
+  const netCash      = profit - data.debt
+  const grossProd    = data.sachetProduction + data.bottleProduction
+  const netProd      = grossProd - data.productionLosses
 
-  const generateReportText = () => {
-    return `📊 OPERATIONAL REPORT — ${period.toUpperCase()}
+  const fc = (n: number) => formatCurrency(n, currencyCode, currencySymbol)
+
+  const periodLabel =
+    period === "today" ? "Today" : period === "week" ? "This Week" : "This Month"
+
+  // ── REPORT INSIGHTS ─────────────────────────────────────
+  const insights: { type: "positive" | "warning" | "action"; text: string }[] = []
+
+  if (profit > 0)
+    insights.push({ type: "positive", text: "Factory is operating profitably this period." })
+
+  if (profit < 0)
+    insights.push({ type: "action", text: "Expenses are exceeding sales income. Review costs." })
+
+  if (data.debt > 0)
+    insights.push({ type: "warning", text: `Outstanding customer debt of ${fc(data.debt)} requires attention.` })
+
+  if (data.productionLosses > 0)
+    insights.push({ type: "warning", text: `Production losses of ${data.productionLosses} bags recorded this period.` })
+
+  if (grossProd > 0 && data.sales > 0)
+    insights.push({ type: "positive", text: "Production is active with sales recorded this period." })
+
+  if (grossProd === 0)
+    insights.push({ type: "action", text: "No production recorded for this period." })
+
+  // ── REPORT TEXT GENERATOR ────────────────────────────────
+  const generateReportText = () =>
+    `📊 OPERATIONAL REPORT — ${period.toUpperCase()}
 
 ━━━━━━━━━━━━━━━━━━━
 
 💰 Revenue
-Sales: ${formatCurrency(data.sales, currencyCode, currencySymbol)}
+Sales: ${fc(data.sales)}
 
 💸 Operational Costs
-Total: ${formatCurrency(data.costs, currencyCode, currencySymbol)}
+Total: ${fc(data.costs)}
+• Material Cost: ${fc(data.materialCost)}
+• Production Cost: ${fc(data.productionCost)}
+• Other Expense: ${fc(data.otherExpense)}
 
-• Material Cost: ${formatCurrency(data.materialCost, currencyCode, currencySymbol)}
-• Production Cost: ${formatCurrency(data.productionCost, currencyCode, currencySymbol)}
-• Other Expense: ${formatCurrency(data.otherExpense, currencyCode, currencySymbol)}
+📦 Gross Production: ${grossProd} bags
+📦 Production Losses: ${data.productionLosses} bags
+📦 Net Production: ${netProd} bags
+📦 Sachet Stock: ${data.sachetStock} bags
+📦 Bottle Stock: ${data.bottleStock} crates
 
-📦 Sachet Production
-${data.sachetProduction} bags
-
-📦 Sachet Stock
-${data.sachetStock} bags
-
-📦 Bottle Production
-${data.bottleProduction} crates
-
-📦 Bottle Stock
-${data.bottleStock} crates
-
-⚠️ Debt Exposure
-${formatCurrency(data.debt, currencyCode, currencySymbol)}
+⚠️ Debt Exposure: ${fc(data.debt)}
 
 ━━━━━━━━━━━━━━━━━━━
 
-📈 Net Result
-${formatCurrency(profit, currencyCode, currencySymbol)}
+📈 Net Result: ${fc(profit)}
 `
-  }
 
   const handleWhatsApp = () => {
     const text = encodeURIComponent(generateReportText())
@@ -201,323 +201,242 @@ ${formatCurrency(profit, currencyCode, currencySymbol)}
 
   const handleEmail = () => {
     const subject = encodeURIComponent("Operational Report")
-    const body = encodeURIComponent(generateReportText())
+    const body    = encodeURIComponent(generateReportText())
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }
 
+  const insightStyle = {
+    positive: { border: "bg-green-50 border-green-200", dot: "🟢", label: "Positive",        text: "text-green-800", labelColor: "text-green-700" },
+    warning:  { border: "bg-yellow-50 border-yellow-200", dot: "🟡", label: "Attention",       text: "text-yellow-800",labelColor: "text-yellow-700"},
+    action:   { border: "bg-red-50 border-red-200",    dot: "🔴", label: "Action Required",  text: "text-red-800",  labelColor: "text-red-700"  },
+  }
+
   return (
-    <div className="p-4 space-y-5 pb-24">
+    <div className="space-y-4 p-3 pb-24">
 
-      {/* HEADER */}
+      {/* ── 1. HEADER ─────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-[#0d1b3e]">
-          Reports
-        </h1>
-        <p className="text-sm text-gray-500">
-          Operational intelligence summary
-        </p>
+        <h1 className="text-lg font-bold text-[#0d1b3e]">Reports</h1>
+        <p className="text-xs text-gray-500 mt-0.5">Operational intelligence summary</p>
       </div>
 
-      {/* PERIOD SELECTOR */}
-      <div className="flex gap-2 flex-wrap">
-
-        {[
-          { key: "today", label: "Today" },
-          { key: "week",  label: "Week"  },
-          { key: "month", label: "Month" },
-        ].map((p) => (
+      {/* ── 2. PERIOD + CURRENCY ──────────────────────────── */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: "today", label: "Today" },
+            { key: "week",  label: "Week"  },
+            { key: "month", label: "Month" },
+          ].map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                period === p.key
+                  ? "bg-[#2563eb] text-white"
+                  : "bg-white border border-gray-200 text-gray-700"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
           <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm ${
-              period === p.key
-                ? "bg-[#2563eb] text-white"
-                : "bg-white border border-gray-200"
-            }`}
+            onClick={() => setActiveTab("history")}
+            className="px-3 py-1.5 rounded-lg text-sm bg-[#0d1b3e] text-white"
           >
-            {p.label}
+            History
           </button>
-        ))}
+        </div>
 
-        <button
-          onClick={() => setActiveTab("history")}
-          className="px-3 py-1.5 rounded-lg text-sm bg-[#0d1b3e] text-white"
+        <select
+          value={currencyCode}
+          onChange={(e) => {
+            const CURRENCIES: Record<string, string> = {
+              NGN: "₦", USD: "$", GBP: "£", EUR: "€", KES: "KSh", GHS: "GH₵", ZAR: "R",
+            }
+            setCurrencyCode(e.target.value)
+            setCurrencySymbol(CURRENCIES[e.target.value] || "₦")
+          }}
+          className="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm shadow-sm"
         >
-          History
-        </button>
-
+          <option value="NGN">₦ NGN</option>
+          <option value="USD">$ USD</option>
+          <option value="GBP">£ GBP</option>
+          <option value="EUR">€ EUR</option>
+          <option value="KES">KSh KES</option>
+          <option value="GHS">GH₵ GHS</option>
+          <option value="ZAR">R ZAR</option>
+        </select>
       </div>
 
-      {/* REPORT FILTERS */}
-      <div className="bg-white p-3 rounded-2xl shadow-sm space-y-2">
-
-        <h2 className="text-sm font-semibold text-[#0d1b3e]">
-          Report Filters
-        </h2>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[11px] text-gray-400 mb-1">From</p>
-            <input
-              type="date"
-              value={filters.fromDate}
-              onChange={(e) =>
-                setFilters({ ...filters, fromDate: e.target.value })
-              }
-              className="w-full h-9 border border-gray-200 rounded-xl px-2 text-sm"
-            />
-          </div>
-          <div>
-            <p className="text-[11px] text-gray-400 mb-1">To</p>
-            <input
-              type="date"
-              value={filters.toDate}
-              onChange={(e) =>
-                setFilters({ ...filters, toDate: e.target.value })
-              }
-              className="w-full h-9 border border-gray-200 rounded-xl px-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[11px] text-gray-400 mb-1">Product</p>
-            <select
-              value={filters.product}
-              onChange={(e) =>
-                setFilters({ ...filters, product: e.target.value })
-              }
-              className="w-full h-9 border border-gray-200 rounded-xl px-2 text-sm bg-white"
-            >
-              <option value="all">All Products</option>
-              <option value="sachet">Sachet</option>
-              <option value="bottle">Bottle</option>
-            </select>
-          </div>
-          <div>
-            <p className="text-[11px] text-gray-400 mb-1">Shift</p>
-            <select
-              value={filters.shift}
-              onChange={(e) =>
-                setFilters({ ...filters, shift: e.target.value })
-              }
-              className="w-full h-9 border border-gray-200 rounded-xl px-2 text-sm bg-white"
-            >
-              <option value="all">All Shifts</option>
-              <option value="morning">Morning</option>
-              <option value="afternoon">Afternoon</option>
-              <option value="night">Night</option>
-            </select>
-          </div>
-        </div>
-
-        <button
-          onClick={() => loadReport()}
-          className="w-full h-10 bg-[#2563eb] text-white rounded-xl text-sm font-semibold"
-        >
-          Apply Filters
-        </button>
-
-      </div>
-
-      {/* EXECUTIVE SUMMARY GRID */}
-      <div className="grid grid-cols-2 gap-3">
-
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">
-            Sales
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {formatCurrency(data.sales, currencyCode, currencySymbol)}
+      {/* ── 3. REPORT SUMMARY HERO ────────────────────────── */}
+      <div className={`rounded-2xl p-5 shadow-md text-white ${
+        profit >= 0
+          ? "bg-gradient-to-r from-green-700 to-green-600"
+          : "bg-gradient-to-r from-red-700 to-red-600"
+      }`}>
+        <div className="flex items-center gap-2 mb-1">
+          {profit >= 0
+            ? <TrendingUp size={16} className="opacity-80" />
+            : <TrendingDown size={16} className="opacity-80" />
+          }
+          <p className="text-xs opacity-80 uppercase tracking-wide font-semibold">
+            Net Result — {periodLabel}
           </p>
         </div>
-
-        <div className="bg-red-50 border border-red-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">
-            Operational Costs
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {formatCurrency(data.costs, currencyCode, currencySymbol)}
-          </p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">
-            Gross Sachet Prod.
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {data.sachetProduction} bags
-          </p>
-        </div>
-
-        <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">
-            Production Losses
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            0 bags
-          </p>
-        </div>
-
-        <div className="bg-green-50 border border-green-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">
-            Net Sachet Prod.
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {data.sachetProduction} bags
-          </p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">
-            Sachet Stock
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {data.sachetStock} bags
-          </p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">
-            Bottle Production
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {data.bottleProduction} crates
-          </p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">
-            Bottle Stock
-          </p>
-          <p className="text-lg font-bold text-[#0d1b3e] mt-1">
-            {data.bottleStock} crates
-          </p>
-        </div>
-
-      </div>
-
-      {/* FINANCIAL SUMMARY */}
-      <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-4 space-y-3">
-
-        <h2 className="font-semibold text-[#2563eb]">
-          Financial Summary
-        </h2>
-
-        {[
-          { label: "Material Cost",   value: data.materialCost   },
-          { label: "Production Cost", value: data.productionCost },
-          { label: "Other Expense",   value: data.otherExpense   },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex justify-between text-sm">
-            <span className="text-gray-600">{label}</span>
-            <span className="font-medium text-[#0d1b3e]">
-              {formatCurrency(value, currencyCode, currencySymbol)}
-            </span>
-          </div>
-        ))}
-
-        <div className="border-t border-gray-100 pt-2 flex justify-between text-sm text-red-600">
-          <span>Debt Exposure</span>
-          <span className="font-medium">
-            {formatCurrency(data.debt, currencyCode, currencySymbol)}
-          </span>
-        </div>
-
-      </div>
-
-      {/* NET RESULT HERO */}
-      <div className="bg-gradient-to-r from-[#0d1b3e] to-gray-800 text-white p-5 rounded-2xl shadow-md">
-
-        <p className="text-xs opacity-70 uppercase tracking-wide">
-          Net Operating Result
+        <p className="text-4xl font-bold tracking-tight">{fc(profit)}</p>
+        <p className="text-sm opacity-90 mt-1">
+          {profit > 0 && "Factory is operating profitably."}
+          {profit < 0 && "Factory expenses are currently exceeding income."}
+          {profit === 0 && "Factory is at break-even."}
         </p>
-
-        <p className="text-3xl font-bold mt-2">
-          {formatCurrency(profit, currencyCode, currencySymbol)}
-        </p>
-
-        <p className="text-xs mt-1 opacity-80">
-          {profit > 0 && "Profit — Business is growing"}
-          {profit < 0 && "Loss — Business is declining"}
-          {profit === 0 && "Break-even"}
-        </p>
-
-        <div className="mt-4 border-t border-white/20 pt-3 flex justify-between items-center">
+        <div className="mt-4 pt-3 border-t border-white/20 grid grid-cols-3 gap-3 text-sm">
           <div>
-            <p className="text-xs opacity-60">Net Cash Profit</p>
-            <p className={`text-lg font-semibold ${netCashProfit < 0 ? "text-red-400" : "text-green-400"}`}>
-              {formatCurrency(netCashProfit, currencyCode, currencySymbol)}
+            <p className="opacity-60 text-xs">Sales</p>
+            <p className="font-semibold mt-0.5">{fc(data.sales)}</p>
+          </div>
+          <div>
+            <p className="opacity-60 text-xs">Expenses</p>
+            <p className="font-semibold mt-0.5">{fc(data.costs)}</p>
+          </div>
+          <div>
+            <p className="opacity-60 text-xs">Net Cash</p>
+            <p className={`font-semibold mt-0.5 ${netCash < 0 ? "text-red-300" : "text-green-200"}`}>
+              {fc(netCash)}
             </p>
           </div>
-          <p className="text-xs opacity-60">
-            {netCashProfit < 0 ? "Cash Loss" : "Cash Profit"}
-          </p>
         </div>
-
       </div>
 
-      {/* EXPORT REPORT */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-
-        <div>
-          <h2 className="font-semibold text-[#0d1b3e]">Export Report</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Download or share this report</p>
-        </div>
-
-        <button
-          onClick={() => alert("Coming Soon")}
-          className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-xl text-sm font-semibold"
-        >
-          📊 Export Excel
-        </button>
-
-        <button
-          onClick={() => alert("Coming Soon")}
-          className="w-full h-11 bg-blue-50 text-[#2563eb] rounded-xl text-sm font-semibold"
-        >
-          📄 Export PDF
-        </button>
-
-        <button
-          onClick={() => setActiveTab("migration")}
-          className="w-full h-11 bg-[#0d1b3e] text-white rounded-xl text-sm font-semibold"
-        >
-          📥 Import Historical Data
-        </button>
-
+      {/* ── 4. KPI GRID (3 rows × 2 cards) ───────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { label: "Gross Production",    value: `${grossProd} bags`,              icon: Package,  accent: "text-green-600",  bg: "bg-green-50 border-green-100"   },
+          { label: "Production Losses",   value: `${data.productionLosses} bags`,  icon: Zap,      accent: "text-red-500",    bg: "bg-red-50 border-red-100"       },
+          { label: "Net Production",      value: `${netProd} bags`,                icon: Package,  accent: "text-[#2563eb]",  bg: "bg-blue-50 border-blue-100"     },
+          { label: "Customer Debts",      value: fc(data.debt),                    icon: Users,    accent: "text-orange-500", bg: "bg-orange-50 border-orange-100" },
+          { label: "Sachet Stock",        value: `${data.sachetStock} bags`,       icon: Zap,      accent: "text-purple-500", bg: "bg-purple-50 border-purple-100" },
+          { label: "Bottle Stock",        value: `${data.bottleStock} crates`,     icon: BarChart3,accent: "text-teal-600",   bg: "bg-teal-50 border-teal-100"     },
+        ].map(({ label, value, icon: Icon, accent, bg }) => (
+          <div key={label} className={`border rounded-2xl p-3 shadow-sm ${bg}`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Icon size={13} className={accent} />
+              <p className={`text-[11px] font-semibold uppercase tracking-wide ${accent}`}>
+                {label}
+              </p>
+            </div>
+            <p className="text-base font-bold text-[#0d1b3e] mt-1">{value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* SHARE — premium only */}
-      {isPremium ? (
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleWhatsApp}
-            className="w-full h-11 bg-green-600 text-white rounded-xl text-sm font-semibold"
-          >
-            Share WhatsApp
-          </button>
-          <button
-            onClick={handleEmail}
-            className="w-full h-11 bg-gray-800 text-white rounded-xl text-sm font-semibold"
-          >
-            Share Email
-          </button>
+      {/* ── 5. COST BREAKDOWN ─────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50">
+          <h2 className="font-bold text-[#0d1b3e] text-sm">Cost Breakdown</h2>
         </div>
-      ) : (
-        <div className="bg-white p-4 rounded-2xl shadow-sm text-center space-y-2">
-          <p className="text-sm font-semibold text-[#0d1b3e]">
-            🔒 Premium Feature
-          </p>
-          <p className="text-xs text-gray-500">
-            Upgrade to unlock reports & history
-          </p>
-          <button className="bg-[#0d1b3e] text-white px-4 py-2 rounded-xl text-sm">
-            Upgrade
-          </button>
+        <div className="divide-y divide-gray-50">
+          {[
+            { label: "Material Cost",    value: fc(data.materialCost),   color: "text-[#0d1b3e]" },
+            { label: "Production Cost",  value: fc(data.productionCost), color: "text-[#0d1b3e]" },
+            { label: "Other Expense",    value: fc(data.otherExpense),   color: "text-[#0d1b3e]" },
+            { label: "Debt Exposure",    value: fc(data.debt),           color: "text-red-600"   },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="flex justify-between px-4 py-2.5 text-sm">
+              <span className="text-gray-500">{label}</span>
+              <span className={`font-semibold ${color}`}>{value}</span>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* ── 6. REPORT INSIGHTS ────────────────────────────── */}
+      <div className="space-y-2">
+        <h2 className="text-sm font-bold text-[#0d1b3e] px-1">Report Insights</h2>
+        {insights.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 text-sm text-gray-400 text-center">
+            Add transactions to generate insights.
+          </div>
+        )}
+        {insights.map((ins, i) => {
+          const s = insightStyle[ins.type]
+          return (
+            <div
+              key={i}
+              className={`rounded-2xl p-3 flex items-center gap-3 border ${s.border}`}
+            >
+              <span className="text-base shrink-0">{s.dot}</span>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-wide ${s.labelColor}`}>
+                  {s.label}
+                </p>
+                <p className={`text-sm mt-0.5 ${s.text}`}>{ins.text}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── 7. REPORT ACTIONS ─────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50">
+          <h2 className="font-bold text-[#0d1b3e] text-sm">Report Actions</h2>
+        </div>
+        <div className="p-4 space-y-3">
+
+          {/* EXPORT */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => alert("Excel export coming soon")}
+              className="flex items-center justify-center gap-2 py-3 bg-green-50 text-green-700 rounded-xl text-sm font-semibold border border-green-100"
+            >
+              <FileSpreadsheet size={16} />
+              Export Excel
+            </button>
+            <button
+              onClick={() => alert("PDF export coming soon")}
+              className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-[#2563eb] rounded-xl text-sm font-semibold border border-blue-100"
+            >
+              <FileText size={16} />
+              Export PDF
+            </button>
+          </div>
+
+          {/* HISTORY */}
+          <button
+            onClick={() => setActiveTab("history")}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[#0d1b3e] text-white rounded-xl text-sm font-semibold"
+          >
+            <History size={16} />
+            Import Historical Data
+          </button>
+
+          {/* SHARE — premium only */}
+          {isPremium && (
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-50">
+              <button
+                onClick={handleWhatsApp}
+                className="flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold"
+              >
+                Share WhatsApp
+              </button>
+              <button
+                onClick={handleEmail}
+                className="flex items-center justify-center gap-2 py-3 bg-gray-800 text-white rounded-xl text-sm font-semibold"
+              >
+                Share Email
+              </button>
+            </div>
+          )}
+
+          {!isPremium && (
+            <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+              <p className="text-xs font-semibold text-gray-600">🔒 Share via WhatsApp & Email — Premium Feature</p>
+            </div>
+          )}
+
+        </div>
+      </div>
 
     </div>
   )
