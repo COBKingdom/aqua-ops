@@ -22,6 +22,7 @@ import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers } from "@/components/screens/admin-customers"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { supabase } from "@/lib/supabase"
+import { supportUrl } from "@/config/support"
 
 function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -109,7 +110,7 @@ export default function WaterFactoryApp() {
             Your account has been suspended. Please contact support to restore access.
           </p>
           <a
-            href="https://wa.me/2349066656691?text=Hello%20AquaOps%20Support%2C%0A%0AMy%20account%20has%20been%20suspended.%20Please%20assist."
+            href={supportUrl("Hello AquaOps Support,\n\nMy account has been suspended. Please assist me in restoring access.")}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-[#2563eb] text-white px-6 py-3 rounded-xl text-sm font-semibold mb-3"
