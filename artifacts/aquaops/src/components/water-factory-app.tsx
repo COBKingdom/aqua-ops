@@ -74,7 +74,6 @@ export default function WaterFactoryApp() {
   const [factoryStatus, setFactoryStatus] = useState<string>("active")
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
-  const [factoryStatus, setFactoryStatus] = useState<string>("active")
   const [isDemoMode] = useState(() => sessionStorage.getItem("aquaops_demo") === "true")
   const exitDemo = () => { sessionStorage.removeItem("aquaops_demo"); window.location.href = "/" }
   const { user, loading } = useAuth()
