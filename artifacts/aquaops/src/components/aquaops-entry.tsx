@@ -274,11 +274,6 @@ export function AquaOpsEntry() {
     window.location.href = "/aquaops"
   }
 
-  const handleTryDemo = () => {
-    sessionStorage.setItem("aquaops_demo", "true")
-    window.location.href = "/aquaops"
-  }
-
   return (
     <div className="min-h-screen bg-[#eef0f5]">
       <div className="max-w-md mx-auto px-4 pt-5 pb-16 space-y-5">
