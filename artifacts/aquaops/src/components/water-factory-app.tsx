@@ -101,7 +101,6 @@ export default function WaterFactoryApp() {
           setFactoryStatus(factory.status || "active")
 
           // OPTIONAL UI CACHE
-          setFactoryStatus(factory.status || "active")
           localStorage.setItem("factoryName", factory.name)
           if (!localStorage.getItem("trialStart")) {
             localStorage.setItem("trialStart", new Date().toISOString())
