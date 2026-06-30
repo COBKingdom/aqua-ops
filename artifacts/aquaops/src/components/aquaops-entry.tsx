@@ -269,6 +269,16 @@ export function AquaOpsEntry() {
     }
   }
 
+  const handleTryDemo = () => {
+    sessionStorage.setItem("aquaops_demo", "true")
+    window.location.href = "/aquaops"
+  }
+
+  const handleTryDemo = () => {
+    sessionStorage.setItem("aquaops_demo", "true")
+    window.location.href = "/aquaops"
+  }
+
   return (
     <div className="min-h-screen bg-[#eef0f5]">
       <div className="max-w-md mx-auto px-4 pt-5 pb-16 space-y-5">
@@ -417,7 +427,26 @@ export function AquaOpsEntry() {
 
         </div>
 
+        {/* TRY DEMO */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <p className="text-xs text-gray-400 shrink-0">or explore first</p>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <button
+            onClick={handleTryDemo}
+            className="w-full border-2 border-[#0d1b3e] text-[#0d1b3e] py-4 rounded-2xl font-medium hover:bg-[#0d1b3e] hover:text-white transition"
+          >
+            🔍 Try Demo — No Account Needed
+          </button>
+          <p className="text-xs text-center text-gray-400">
+            Explore with sample factory data. No sign-up required.
+          </p>
+        </div>
+
       </div>
+
     </div>
   )
 }

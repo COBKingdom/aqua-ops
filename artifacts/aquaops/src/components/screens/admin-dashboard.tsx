@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
@@ -11,14 +9,6 @@ type Overview = {
   premium_factories: number
   total_payments: number
   total_revenue: number
-}
-
-type Customer = {
-  factory_name: string
-  signup_date: string
-  trial_end_date: string
-  trial_state: string
-  factory_id?: string
 }
 
 interface AdminDashboardProps {
@@ -38,7 +28,7 @@ export function AdminDashboard({
     useState<Overview | null>(null)
 
   const [customers, setCustomers] =
-    useState<Customer[]>([])
+    useState<any[]>([])
 
   useEffect(() => {
     loadDashboard()
@@ -216,49 +206,33 @@ export function AdminDashboard({
 
         <div className="grid grid-cols-2 gap-3">
 
-<button
-  onClick={() =>
-    onNavigate?.(
-      "admin-customers"
-    )
-  }
-  className="bg-blue-600 text-white rounded-xl py-3 font-medium"
->
-  Customers
-</button>
+          <button
+            onClick={() => onNavigate?.("admin-customers")}
+            className="bg-blue-600 text-white rounded-xl py-3 font-medium"
+          >
+            Customers
+          </button>
 
           <button
-            onClick={() =>
-              onNavigate?.(
-                "admin-subscriptions"
-              )
-            }
+            onClick={() => onNavigate?.("admin-subscriptions")}
             className="bg-purple-600 text-white rounded-xl py-3 font-medium"
           >
             Subscriptions
           </button>
 
-<button
-  onClick={() =>
-    onNavigate?.(
-      "admin-payments"
-    )
-  }
-  className="bg-green-600 text-white rounded-xl py-3 font-medium"
->
-  Payments
-</button>
+          <button
+            onClick={() => onNavigate?.("admin-payments")}
+            className="bg-green-600 text-white rounded-xl py-3 font-medium"
+          >
+            Payments
+          </button>
 
-<button
-  onClick={() =>
-    onNavigate?.(
-      "admin-revenue"
-    )
-  }
-  className="bg-[#0d1b3e] text-white rounded-xl py-3 font-medium"
->
-  Revenue
-</button>
+          <button
+            onClick={() => onNavigate?.("admin-revenue")}
+            className="bg-[#0d1b3e] text-white rounded-xl py-3 font-medium"
+          >
+            Revenue
+          </button>
 
         </div>
 
@@ -274,25 +248,25 @@ export function AdminDashboard({
 
         <div className="space-y-3">
 
-{customers.map(
-  (customer, index) => (
-    <div
-      key={`${customer.factory_name}-${index}`}
-      className="border-b pb-2"
-    >
-      <p className="font-medium">
-        {customer.factory_name}
-      </p>
+          {customers.map(
+            (customer, index) => (
+              <div
+                key={`${customer.factory_name}-${index}`}
+                className="border-b pb-2"
+              >
+                <p className="font-medium">
+                  {customer.factory_name}
+                </p>
 
-      <p className="text-xs text-gray-500">
-        Joined{" "}
-        {new Date(
-          customer.signup_date
-        ).toLocaleDateString()}
-      </p>
-    </div>
-  )
-)}
+                <p className="text-xs text-gray-500">
+                  Joined{" "}
+                  {new Date(
+                    customer.signup_date
+                  ).toLocaleDateString()}
+                </p>
+              </div>
+            )
+          )}
 
         </div>
 
@@ -308,17 +282,15 @@ export function AdminDashboard({
 
         <div className="space-y-3">
 
-{customers.map(
-  (customer, index) => (
+          {customers.map(
+            (customer, index) => (
               <div
-               key={`${customer.factory_name}-trial-${index}`}
+                key={`${customer.factory_name}-trial-${index}`}
                 className="flex justify-between items-center border-b pb-2"
               >
                 <div>
                   <p className="font-medium">
-                    {
-                      customer.factory_name
-                    }
+                    {customer.factory_name}
                   </p>
 
                   <p className="text-xs text-gray-500">
@@ -340,9 +312,7 @@ export function AdminDashboard({
                       : "bg-red-100 text-red-700"
                   }`}
                 >
-                  {
-                    customer.trial_state
-                  }
+                  {customer.trial_state}
                 </span>
               </div>
             )

@@ -16,6 +16,11 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 import { HistoryScreen } from "@/components/screens/history"
 import { getCurrentFactory } from "@/lib/current-factory"
+import { SuspendedScreen } from "@/components/screens/suspended-screen"
+import { InactiveScreen }  from "@/components/screens/inactive-screen"
+import { ArchivedScreen }  from "@/components/screens/archived-screen"
+import { DemoBanner }      from "@/components/ui/demo-banner"
+import { DEMO_FACTORY_NAME } from "@/data/demo-data"
 import { AdminDashboard } from "@/components/screens/admin-dashboard"
 import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
@@ -69,17 +74,33 @@ export default function WaterFactoryApp() {
   const [factoryStatus, setFactoryStatus] = useState<string>("active")
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
+  const [factoryStatus, setFactoryStatus] = useState<string>("active")
+  const [isDemoMode] = useState(() => sessionStorage.getItem("aquaops_demo") === "true")
+  const exitDemo = () => { sessionStorage.removeItem("aquaops_demo"); window.location.href = "/" }
   const { user, loading } = useAuth()
   const isAdmin = useIsAdmin()
 
   useEffect(() => {
+        // DEMO MODE — bypass auth and factory loading
+    if (isDemoMode) {
+      setFactoryNameState(DEMO_FACTORY_NAME)
+      setFactoryStatus("active")
+      return
+    }
+
     const loadFactory = async () => {
       try {
         if (loading) return
         if (!user) { navigate("/"); return }
         const factory = await getCurrentFactory()
         if (factory) {
-          setFactoryNameState(factory.name)
+                    setFactoryNameState(
+            factory.name
+          )
+
+          setFactoryStatus(factory.status || "active")
+
+          // OPTIONAL UI CACHE
           setFactoryStatus(factory.status || "active")
           localStorage.setItem("factoryName", factory.name)
           if (!localStorage.getItem("trialStart")) {
@@ -96,8 +117,20 @@ export default function WaterFactoryApp() {
     loadFactory()
   }, [user, loading, navigate])
 
-  if (loading) return null
-  if (!factoryName) return null
+  // WAIT FOR AUTH (skip in demo mode)
+  if (!isDemoMode && loading) {
+    return null
+  }
+
+  // WAIT FOR FACTORY
+  if (!factoryName) {
+    return null
+  }
+
+  // STATUS ENFORCEMENT (live users only)
+  if (!isDemoMode && factoryStatus === "suspended") return <SuspendedScreen />
+  if (!isDemoMode && factoryStatus === "inactive")  return <InactiveScreen />
+  if (!isDemoMode && factoryStatus === "archived")  return <ArchivedScreen />
 
   // ── SUSPENDED SCREEN ───────────────────────────────────────
   if (factoryStatus === "suspended") {
@@ -128,8 +161,19 @@ export default function WaterFactoryApp() {
     )
   }
 
+  // SCREEN RENDERER
   const renderScreen = () => {
-    if (activeTab === "dashboard")           return <Dashboard setActiveTab={setActiveTab} />
+
+    if (
+      activeTab === "dashboard"
+    ) {
+      return (
+        <Dashboard
+          setActiveTab={setActiveTab}
+          isDemoMode={isDemoMode}
+        />
+      )
+    }
     if (activeTab === "production")          return <Production />
     if (activeTab === "sales")               return <Sales />
     if (activeTab === "expenses")            return <Expenses />
@@ -178,6 +222,30 @@ export default function WaterFactoryApp() {
     return <Dashboard setActiveTab={setActiveTab} />
   }
 
+  // DEMO SHELL — no auth required
+  if (isDemoMode) {
+    return (
+      <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">
+        <DemoBanner onSignUp={exitDemo} />
+        <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm shrink-0">
+          <div className="flex items-center gap-2">
+            <img src="/icon-192.png" alt="AquaOps Logo" className="w-8 h-8 rounded" />
+            <div>
+              <h1 className="text-sm font-bold text-[#0d1b3e]">AquaOps</h1>
+              <p className="text-[10px] text-gray-400">{factoryName}</p>
+            </div>
+          </div>
+          <button onClick={exitDemo} className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg">
+            Exit Demo
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 py-1">{renderScreen()}</div>
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
+    )
+  }
+
+  // MAIN APP
   return (
     <ProtectedRoute>
       <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col overflow-hidden">

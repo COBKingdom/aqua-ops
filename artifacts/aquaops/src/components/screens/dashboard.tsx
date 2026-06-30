@@ -18,12 +18,15 @@ import { isProUser } from "@/lib/subscription"
 import { getAccessStatus } from "@/lib/access"
 import { supabase } from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
+import { DEMO_PERIODS, DEMO_FACTORY_NAME, DEMO_CURRENCY_CODE, DEMO_CURRENCY_SYMBOL } from "@/data/demo-data"
 import { supportUrl } from "@/config/support"
 
 export function Dashboard({
   setActiveTab,
+  isDemoMode = false,
 }: {
   setActiveTab: (tab: string) => void
+  isDemoMode?: boolean
 }) {
   const [factoryName, setFactoryName] = useState("")
   const [currencyCode, setCurrencyCode] = useState("NGN")
@@ -53,8 +56,29 @@ export function Dashboard({
   }
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      const factoryId = await getFactoryId()
+  const loadDashboard = async () => {
+      // DEMO MODE — use static sample data
+      if (isDemoMode) {
+        const demo = DEMO_PERIODS[period] || DEMO_PERIODS.today
+        setFactoryName(DEMO_FACTORY_NAME)
+        setCurrencyCode(DEMO_CURRENCY_CODE)
+        setCurrencySymbol(DEMO_CURRENCY_SYMBOL)
+        setData({
+          sales: demo.sales,
+          costs: demo.costs,
+          debt:  demo.debt,
+          production: demo.sachetProduction + demo.bottleProduction,
+          sachetProduction: demo.sachetProduction,
+          bottleProduction: demo.bottleProduction,
+          sachetStock:      demo.sachetStock,
+          bottleStock:      demo.bottleStock,
+        })
+        return
+      }
+
+      const factoryId =
+  await getFactoryId()
+
       if (!factoryId) return
       try {
         const dateFilter = getDateFilter()
@@ -119,7 +143,7 @@ export function Dashboard({
       }
     }
     loadDashboard()
-  }, [period])
+  }, [period, isDemoMode])
 
   useEffect(() => {
     const checkAccess = async () => {
