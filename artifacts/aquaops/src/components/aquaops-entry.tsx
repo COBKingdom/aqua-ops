@@ -179,17 +179,23 @@ export function AquaOpsEntry() {
         if (!existingSubscription) {
           const startedAt = new Date()
           const expiresAt = new Date()
-          expiresAt.setDate(expiresAt.getDate() + 60)
+          expiresAt.setDate(expiresAt.getDate() + 14)
 
-          const { error: subscriptionError } = await supabase
-            .from("subscriptions")
-            .insert({
-              user_id: authData.user.id,
-              plan: "Starter",
-              status: "Trial",
-              started_at: startedAt.toISOString(),
-              expires_at: expiresAt.toISOString(),
-            })
+  const {
+    error: subscriptionError,
+  } = await supabase
+    .from("subscriptions")
+    .insert({
+      user_id: authData.user.id,
+      plan: "Starter",
+      status: "Trial",
+      user_limit: 1,
+      renewal_status: "pending",
+      started_at:
+        startedAt.toISOString(),
+      expires_at:
+        expiresAt.toISOString(),
+    })
 
           if (subscriptionError) {
             setErrorMsg("Failed to activate trial. Please contact support.")

@@ -90,18 +90,23 @@ export function AdminSubscriptions() {
         expiry.getMonth() + 1
       )
 
-      const { error } =
+            const { error } =
         await supabase
           .from("subscriptions")
-          .upsert({
-            user_id: userId,
-            plan: "Monthly",
-            status: "Active",
-            started_at:
-              now.toISOString(),
-            expires_at:
-              expiry.toISOString(),
-          })
+          .upsert(
+            {
+              user_id: userId,
+              plan: "Standard",
+              status: "Active",
+              user_limit: 1,
+              renewal_status: "completed",
+              started_at:
+                now.toISOString(),
+              expires_at:
+                expiry.toISOString(),
+            },
+            { onConflict: "user_id" }
+          )
 
       if (error) {
         alert(error.message)
@@ -137,15 +142,20 @@ export function AdminSubscriptions() {
       const { error } =
         await supabase
           .from("subscriptions")
-          .upsert({
-            user_id: userId,
-            plan: "Annual",
-            status: "Active",
-            started_at:
-              now.toISOString(),
-            expires_at:
-              expiry.toISOString(),
-          })
+          .upsert(
+            {
+              user_id: userId,
+              plan: "Multi-User",
+              status: "Active",
+              user_limit: 4,
+              renewal_status: "completed",
+              started_at:
+                now.toISOString(),
+              expires_at:
+                expiry.toISOString(),
+            },
+            { onConflict: "user_id" }
+          )
 
       if (error) {
         alert(error.message)
@@ -172,11 +182,15 @@ export function AdminSubscriptions() {
         const { error } =
           await supabase
             .from("subscriptions")
-            .upsert({
-              user_id: userId,
-              plan: "Starter",
-              status: "Suspended",
-            })
+            .upsert(
+              {
+                user_id: userId,
+                plan: "Starter",
+                status: "Suspended",
+                user_limit: 1,
+              },
+              { onConflict: "user_id" }
+            )
 
         if (error) {
           alert(error.message)
@@ -290,7 +304,7 @@ export function AdminSubscriptions() {
                   )
                 }
               >
-                Monthly
+                Standard (₦10k)
               </Button>
 
               <Button
@@ -302,7 +316,7 @@ export function AdminSubscriptions() {
                 }
                 className="bg-green-600"
               >
-                Annual
+                Multi-User (₦15k)
               </Button>
 
               <Button

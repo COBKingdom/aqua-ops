@@ -15,14 +15,21 @@ export function SubscriptionExpired() {
         </div>
 
         <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+
           <div className="flex justify-between">
-            <span>Monthly</span>
-            <span className="font-semibold">₦10,000</span>
+            <span>Standard</span>
+            <span className="font-semibold">
+              ₦10,000/month
+            </span>
           </div>
+
           <div className="flex justify-between">
-            <span>Annual</span>
-            <span className="font-semibold">₦108,000</span>
+            <span>Multi-User</span>
+            <span className="font-semibold">
+              ₦15,000/month
+            </span>
           </div>
+
         </div>
 
         <a
