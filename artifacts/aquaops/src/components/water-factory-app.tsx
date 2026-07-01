@@ -25,6 +25,7 @@ import { AdminDashboard } from "@/components/screens/admin-dashboard"
 import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers } from "@/components/screens/admin-customers"
+import { RenewSubscription } from "@/components/screens/renew-subscription"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { supabase } from "@/lib/supabase"
 import { supportUrl } from "@/config/support"
@@ -113,7 +114,31 @@ export default function WaterFactoryApp() {
       }
     }
     loadFactory()
+
   }, [user, loading, navigate])
+
+  useEffect(() => {
+    const handleNavigate = (
+      e: Event
+    ) => {
+      const tab = (
+        e as CustomEvent
+      ).detail
+      if (tab) setActiveTab(tab)
+    }
+
+    window.addEventListener(
+      "aquaops:navigate",
+      handleNavigate
+    )
+
+    return () => {
+      window.removeEventListener(
+        "aquaops:navigate",
+        handleNavigate
+      )
+    }
+  }, [])
 
   // WAIT FOR AUTH (skip in demo mode)
   if (!isDemoMode && loading) {
@@ -179,9 +204,34 @@ export default function WaterFactoryApp() {
     if (activeTab === "reports")             return <Reports setActiveTab={setActiveTab} />
     if (activeTab === "loans")               return <Loans />
     if (activeTab === "bank")                return <Bank />
-    if (activeTab === "account")             return <AccountScreen />
-    if (activeTab === "history")             return <HistoryScreen setActiveTab={setActiveTab} />
-    if (activeTab === "migration")           return <MigrationWizard setActiveTab={setActiveTab} />
+    if (activeTab === "account") {
+      return (
+        <AccountScreen
+          setActiveTab={setActiveTab}
+        />
+      )
+    }
+
+    if (activeTab === "history") {
+      return <HistoryScreen />
+    }
+
+    if (activeTab === "renew-subscription") {
+      return (
+        <RenewSubscription
+          setActiveTab={setActiveTab}
+        />
+      )
+    }
+
+    if (activeTab === "migration") {
+      return (
+        <MigrationWizard
+          setActiveTab={setActiveTab}
+        />
+      )
+    }
+
     if (activeTab === "admin-dashboard") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -189,6 +239,7 @@ export default function WaterFactoryApp() {
         </AdminGuard>
       )
     }
+
     if (activeTab === "admin-subscriptions") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -196,6 +247,7 @@ export default function WaterFactoryApp() {
         </AdminGuard>
       )
     }
+
     if (activeTab === "admin-payments") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -203,6 +255,7 @@ export default function WaterFactoryApp() {
         </AdminGuard>
       )
     }
+
     if (activeTab === "admin-revenue") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -210,6 +263,7 @@ export default function WaterFactoryApp() {
         </AdminGuard>
       )
     }
+
     if (activeTab === "admin-customers") {
       return (
         <AdminGuard isAdmin={isAdmin} setActiveTab={setActiveTab}>
@@ -217,6 +271,7 @@ export default function WaterFactoryApp() {
         </AdminGuard>
       )
     }
+
     return <Dashboard setActiveTab={setActiveTab} />
   }
 
