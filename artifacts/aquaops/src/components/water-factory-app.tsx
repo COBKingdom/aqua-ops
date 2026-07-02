@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 import { HistoryScreen } from "@/components/screens/history"
+import { DataSetup } from "@/components/screens/data-setup"
 import { getCurrentFactory } from "@/lib/current-factory"
 import { SuspendedScreen } from "@/components/screens/suspended-screen"
 import { InactiveScreen }  from "@/components/screens/inactive-screen"
@@ -281,7 +282,11 @@ export default function WaterFactoryApp() {
     if (activeTab === "history") {
       return <HistoryScreen />
     }
-
+    if (activeTab === "data-setup") {
+  return (
+    <DataSetup setActiveTab={setActiveTab} />
+  )
+}
     if (activeTab === "renew-subscription") {
       return (
         <RenewSubscription

@@ -432,10 +432,26 @@ Total: ${fc(data.costs)}
           {!isPremium && (
             <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
               <p className="text-xs font-semibold text-gray-600">🔒 Share via WhatsApp & Email — Premium Feature</p>
-            </div>
-          )}
+          </div>
+        )}
 
+        {/* BUSINESS SETUP WIZARD */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-2 mt-3">
+          <p className="text-sm font-semibold text-[#0d1b3e]">
+            Business Setup Wizard
+          </p>
+          <p className="text-xs text-gray-500">
+            Import existing records — customers, debts, production, sales and expenses.
+          </p>
+          <button
+            onClick={() => setActiveTab("data-setup")}
+            className="w-full h-11 bg-[#0d1b3e] text-white rounded-lg text-sm font-semibold active:scale-[0.97]"
+          >
+            Open Setup Wizard
+          </button>
         </div>
+
+      </div>
       </div>
 
     </div>

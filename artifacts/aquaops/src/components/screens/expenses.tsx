@@ -10,9 +10,11 @@ export function Expenses() {
   const [loading, setLoading] =
     useState(false)
 
-  const [saved, setSaved] =
+   const [saved, setSaved] =
     useState(false)
 
+  const [date, setDate] =
+    useState(new Date().toISOString().split("T")[0])
   const [amount, setAmount] =
     useState("")
 
@@ -99,15 +101,10 @@ const factoryId =
           .from("expenses")
           .insert({
             factory_id: factoryId,
-
-            amount:
-              Number(amount),
-
+            date,
+            amount: Number(amount),
             notes,
-
-            cost_group:
-              costGroup,
-
+            cost_group: costGroup,
             category,
           })
 
@@ -119,6 +116,7 @@ const factoryId =
       // RESET FORM
       setAmount("")
       setNotes("")
+      setDate(new Date().toISOString().split("T")[0])
 
       // SUCCESS STATE
       setSaved(true)
@@ -155,7 +153,20 @@ const factoryId =
 
       {/* FORM */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-
+         
+                 {/* DATE */}
+        <div>
+          <label className="text-sm font-medium">
+            Date
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full mt-2 p-4 rounded-2xl border border-gray-200 outline-none"
+          />
+        </div>
+        
         {/* COST GROUP */}
         <div>
           <label className="text-sm font-medium">
