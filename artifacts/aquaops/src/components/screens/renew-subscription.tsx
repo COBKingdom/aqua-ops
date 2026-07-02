@@ -11,6 +11,9 @@ interface RenewSubscriptionProps {
   setActiveTab: (tab: string) => void
 }
 
+// TEMP: disable payments while Flutterwave merchant branding is being updated
+const PAYMENTS_DISABLED = true
+
 export function RenewSubscription({
   setActiveTab,
 }: RenewSubscriptionProps) {
@@ -433,17 +436,26 @@ export function RenewSubscription({
       </div>
 
       {/* PAY BUTTON */}
-      <Button
-        className="w-full h-12 bg-[#2563eb] text-white text-base font-semibold"
-        onClick={handlePayNow}
-        disabled={loading || !scriptLoaded}
-      >
-        {loading
-          ? "Processing..."
-          : !scriptLoaded
-          ? "Loading payment system..."
-          : `Pay ₦${PLANS[selectedPlan].price.toLocaleString()}`}
-      </Button>
+      {PAYMENTS_DISABLED ? (
+        <Button
+          disabled
+          className="w-full h-12 bg-gray-100 text-gray-400 text-base font-semibold cursor-not-allowed"
+        >
+          Payments Temporarily Unavailable
+        </Button>
+      ) : (
+        <Button
+          className="w-full h-12 bg-[#2563eb] text-white text-base font-semibold"
+          onClick={handlePayNow}
+          disabled={loading || !scriptLoaded}
+        >
+          {loading
+            ? "Processing..."
+            : !scriptLoaded
+            ? "Loading payment system..."
+            : `Pay ₦${PLANS[selectedPlan].price.toLocaleString()}`}
+        </Button>
+      )}
 
       {status === "failed" && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
