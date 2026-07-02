@@ -5,6 +5,15 @@ export const PLANS = {
     currency: "NGN",
     user_limit: 1,
     description: "1 user · ₦10,000/month",
+    billing_period: "monthly" as const,
+  },
+  "Standard Annual": {
+    name: "Standard",
+    price: 108000,
+    currency: "NGN",
+    user_limit: 1,
+    description: "1 user · ₦108,000/year (save ₦12,000)",
+    billing_period: "annual" as const,
   },
   "Multi-User": {
     name: "Multi-User",
@@ -12,6 +21,15 @@ export const PLANS = {
     currency: "NGN",
     user_limit: 4,
     description: "Up to 4 users · ₦15,000/month",
+    billing_period: "monthly" as const,
+  },
+  "Multi-User Annual": {
+    name: "Multi-User",
+    price: 162000,
+    currency: "NGN",
+    user_limit: 4,
+    description: "Up to 4 users · ₦162,000/year (save ₦18,000)",
+    billing_period: "annual" as const,
   },
 } as const
 

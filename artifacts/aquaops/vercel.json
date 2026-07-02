@@ -1,7 +1,7 @@
 {
   "framework": null,
-  "buildCommand": "pnpm --filter @workspace/aquaops run build && cp -r artifacts/aquaops/dist ./deploy-output",
-  "outputDirectory": "deploy-output",
+  "buildCommand": "pnpm --filter @workspace/aquaops run build",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

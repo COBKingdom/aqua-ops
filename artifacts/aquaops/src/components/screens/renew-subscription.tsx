@@ -176,8 +176,11 @@ export function RenewSubscription({
         const now = new Date()
 
         const expiry = new Date()
+        const isAnnual =
+          plan.billing_period === "annual"
         expiry.setMonth(
-          expiry.getMonth() + 1
+          expiry.getMonth() +
+            (isAnnual ? 12 : 1)
         )
 
         const { error } =
@@ -272,7 +275,9 @@ export function RenewSubscription({
                 Valid for
               </span>
               <span className="font-medium">
-                1 month
+                {PLANS[selectedPlan].billing_period === "annual"
+                  ? "12 months"
+                  : "1 month"}
               </span>
             </div>
 
@@ -361,7 +366,9 @@ export function RenewSubscription({
                   </p>
 
                   <p className="text-xs text-gray-400">
-                    per month
+                    {plan.billing_period === "annual"
+                      ? "per year"
+                      : "per month"}
                   </p>
                 </div>
 
@@ -415,7 +422,9 @@ export function RenewSubscription({
               Duration
             </span>
             <span className="font-medium">
-              1 month
+              {PLANS[selectedPlan].billing_period === "annual"
+                ? "12 months"
+                : "1 month"}
             </span>
           </div>
 
