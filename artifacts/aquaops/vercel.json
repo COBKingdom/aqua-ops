@@ -1,8 +1,8 @@
 {
+  "framework": null,
+  "buildCommand": "pnpm --filter @workspace/aquaops run build",
+  "outputDirectory": "artifacts/aquaops/dist/public",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
