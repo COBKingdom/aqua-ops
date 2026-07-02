@@ -26,6 +26,7 @@ import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers } from "@/components/screens/admin-customers"
 import { RenewSubscription } from "@/components/screens/renew-subscription"
+import { UserManagement } from "@/components/screens/user-management"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { supabase } from "@/lib/supabase"
 import { supportUrl } from "@/config/support"
@@ -73,6 +74,7 @@ export default function WaterFactoryApp() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [factoryName, setFactoryNameState] = useState<string | null>(null)
   const [factoryStatus, setFactoryStatus] = useState<string>("active")
+  const [userRole, setUserRole] = useState<string>("owner")
   const [showDropdown, setShowDropdown] = useState(false)
   const [, navigate] = useLocation()
   const [isDemoMode] = useState(() => sessionStorage.getItem("aquaops_demo") === "true")
@@ -99,6 +101,7 @@ export default function WaterFactoryApp() {
           )
 
           setFactoryStatus(factory.status || "active")
+          setUserRole(factory.role || "owner")
 
           // OPTIONAL UI CACHE
           localStorage.setItem("factoryName", factory.name)
@@ -107,6 +110,49 @@ export default function WaterFactoryApp() {
           }
           return
         }
+
+        // NO FACTORY — CHECK FOR PENDING INVITATION
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser()
+
+        if (currentUser?.email) {
+          const { data: invite } =
+            await supabase
+              .from("factory_invitations")
+              .select("id, factory_id, role")
+              .eq("email", currentUser.email)
+              .is("accepted_at", null)
+              .limit(1)
+              .maybeSingle()
+
+          if (invite) {
+            const { error: joinError } =
+              await supabase
+                .from("factory_users")
+                .insert({
+                  user_id: currentUser.id,
+                  factory_id: invite.factory_id,
+                  role: invite.role,
+                  email: currentUser.email,
+                  is_active: true,
+                })
+
+            if (!joinError) {
+              await supabase
+                .from("factory_invitations")
+                .update({
+                  accepted_at:
+                    new Date().toISOString(),
+                })
+                .eq("id", invite.id)
+
+              window.location.reload()
+              return
+            }
+          }
+        }
+
         navigate("/")
       } catch (err) {
         console.error(err)
@@ -187,6 +233,26 @@ export default function WaterFactoryApp() {
   // SCREEN RENDERER
   const renderScreen = () => {
 
+    // DATA ENTRY ROLE RESTRICTION
+    const ALLOWED_DATA_ENTRY = [
+      "dashboard",
+      "production",
+      "sales",
+      "expenses",
+    ]
+
+    if (
+      userRole === "data_entry" &&
+      !ALLOWED_DATA_ENTRY.includes(activeTab)
+    ) {
+      return (
+        <Dashboard
+          setActiveTab={setActiveTab}
+          isDemoMode={isDemoMode}
+        />
+      )
+    }
+
     if (
       activeTab === "dashboard"
     ) {
@@ -227,6 +293,14 @@ export default function WaterFactoryApp() {
     if (activeTab === "migration") {
       return (
         <MigrationWizard
+          setActiveTab={setActiveTab}
+        />
+      )
+    }
+
+    if (activeTab === "user-management") {
+      return (
+        <UserManagement
           setActiveTab={setActiveTab}
         />
       )
@@ -293,7 +367,11 @@ export default function WaterFactoryApp() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-1">{renderScreen()}</div>
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+               <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          userRole={userRole}
+        />
       </div>
     )
   }
@@ -352,6 +430,15 @@ export default function WaterFactoryApp() {
                     >
                       👤 Account & Billing
                     </button>
+
+                    {!isAdmin && userRole === "owner" && (
+                      <button
+                        onClick={() => { setShowDropdown(false); setActiveTab("user-management") }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium text-[#0d1b3e] hover:bg-gray-50 border-b border-gray-50"
+                      >
+                        👥 Team Members
+                      </button>
+                    )}
                     <button
                       onClick={async () => { setShowDropdown(false); await signOutUser() }}
                       className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
@@ -373,7 +460,11 @@ export default function WaterFactoryApp() {
         </div>
 
         {/* NAV */}
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+               <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          userRole={userRole}
+        />
 
       </div>
     </ProtectedRoute>
