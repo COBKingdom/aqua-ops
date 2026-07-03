@@ -721,9 +721,17 @@ td.empty{text-align:center;color:#94a3b8;padding:20px}
             </button>
           </div>
 
-          {/* HISTORY */}
-          <button
-            onClick={() => setActiveTab("history")}
+        {/* DATA MIGRATION */}
+        <button
+          onClick={() => setActiveTab("data-migration")}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-[#0d1b3e] text-white rounded-xl text-sm font-semibold"
+        >
+          📥 Data Migration
+        </button>
+
+        {/* HISTORY */}
+        <button
+          onClick={() => setActiveTab("history")}
             className="w-full flex items-center justify-center gap-2 py-3 bg-[#0d1b3e] text-white rounded-xl text-sm font-semibold"
           >
             <History size={16} />

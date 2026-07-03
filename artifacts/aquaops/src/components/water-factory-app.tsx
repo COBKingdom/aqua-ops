@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminSubscriptions } from "@/components/screens/admin-subscriptions"
 import { HistoryScreen } from "@/components/screens/history"
+import { DataMigration } from "@/components/screens/data-migration"
 import { DataSetup } from "@/components/screens/data-setup"
 import { getCurrentFactory } from "@/lib/current-factory"
 import { SuspendedScreen } from "@/components/screens/suspended-screen"
@@ -283,6 +284,10 @@ if (
   activeTab === "history"
 ) {
   return <HistoryScreen setActiveTab={setActiveTab} />
+}
+
+if (activeTab === "data-migration") {
+  return <DataMigration setActiveTab={setActiveTab} />
 }
     if (activeTab === "data-setup") {
   return (
