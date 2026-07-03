@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button"
 import { getCurrentFactory } from "@/lib/current-factory"
 import { getUserLimit } from "@/lib/subscription"
 
+// A5 TESTING BYPASS — flip to false when Flutterwave payments are live
+const TESTING_BYPASS = true
+
 interface UserManagementProps {
   setActiveTab: (tab: string) => void
 }
@@ -78,7 +81,7 @@ export function UserManagement({
       )
 
       const limit = await getUserLimit()
-      setUserLimit(limit)
+      setUserLimit(TESTING_BYPASS ? Math.max(limit, 4) : limit)
 
       const { data: memberData } =
         await supabase
@@ -294,7 +297,9 @@ export function UserManagement({
           {userLimit} user
           {userLimit !== 1 ? "s" : ""} used
           ·{" "}
-          {userLimit === 1
+          {TESTING_BYPASS
+            ? "Testing Mode (4 users)"
+            : userLimit === 1
             ? "Standard Plan"
             : "Multi-User Plan"}
         </p>

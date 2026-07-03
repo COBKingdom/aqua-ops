@@ -279,9 +279,11 @@ export default function WaterFactoryApp() {
       )
     }
 
-    if (activeTab === "history") {
-      return <HistoryScreen />
-    }
+if (
+  activeTab === "history"
+) {
+  return <HistoryScreen setActiveTab={setActiveTab} />
+}
     if (activeTab === "data-setup") {
   return (
     <DataSetup setActiveTab={setActiveTab} />

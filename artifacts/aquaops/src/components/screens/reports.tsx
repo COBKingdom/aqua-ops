@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { getFactoryId, getFactoryCurrency } from "@/lib/factory"
 import { formatCurrency } from "@/lib/format"
 import { isPremiumUser } from "@/lib/premium"
+import * as XLSX from "xlsx"
 import {
   TrendingUp,
   TrendingDown,
@@ -39,12 +40,18 @@ export function Reports({
   const [currencyCode, setCurrencyCode] = useState("NGN")
   const [currencySymbol, setCurrencySymbol] = useState("₦")
 
-  const [filters] = useState({
+  // PHASE 14.1 — filter state, ready for Phase 14.2 queries
+  const [filters, setFilters] = useState({
     fromDate: "",
     toDate: "",
     product: "all",
     shift: "all",
   })
+
+  const [rawSales, setRawSales]           = useState<any[]>([])
+  const [rawExpenses, setRawExpenses]     = useState<any[]>([])
+  const [rawProduction, setRawProduction] = useState<any[]>([])
+  const [rawDebts, setRawDebts]           = useState<any[]>([])
 
   useEffect(() => {
     const checkPremium = async () => {
@@ -128,6 +135,11 @@ export function Reports({
         bottleStock:      bottleProduction - bottleSold,
         productionLosses: totalLosses,
       })
+      setRawSales(sales || [])
+      setRawExpenses(expenses || [])
+      setRawProduction(production || [])
+      setRawDebts(debts || [])
+
     } catch (error) {
       console.error(error)
     }
@@ -201,8 +213,117 @@ Total: ${fc(data.costs)}
 
   const handleEmail = () => {
     const subject = encodeURIComponent("Operational Report")
-    const body    = encodeURIComponent(generateReportText())
+    const body = encodeURIComponent(generateReportText())
     window.location.href = `mailto:?subject=${subject}&body=${body}`
+  }
+
+  const handleExcelExport = () => {
+    const wb = XLSX.utils.book_new()
+
+    const salesRows = [
+      ["Date", "Customer", "Product Type", "Bags Sold", "Price Per Bag", "Total Amount", "Amount Paid", "Balance"],
+      ...rawSales.map((s) => [
+        s.date, s.customer_name, s.product_type,
+        s.bags_sold, s.price_per_bag,
+        s.total_amount, s.amount_paid, s.balance,
+      ]),
+    ]
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(salesRows), "Sales")
+
+    const prodRows = [
+      ["Date", "Product Type", "Bags Produced", "Pieces Per Bag", "Shift"],
+      ...rawProduction.map((p) => [
+        p.date, p.product_type, p.bags_produced, p.pieces_per_bag, p.shift,
+      ]),
+    ]
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prodRows), "Production")
+
+    const expRows = [
+      ["Date", "Cost Group", "Category", "Amount", "Notes"],
+      ...rawExpenses.map((e) => [
+        e.date || (e.created_at || "").split("T")[0],
+        e.cost_group, e.category, e.amount, e.notes || "",
+      ]),
+    ]
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(expRows), "Expenses")
+
+    const debtMap: Record<string, number> = {}
+    rawDebts.forEach((d) => {
+      const name = d.customer_name || "Unknown"
+      debtMap[name] = (debtMap[name] || 0) + Number(d.balance || 0)
+    })
+    const debtRows = [
+      ["Customer", "Outstanding Balance"],
+      ...Object.entries(debtMap).map(([name, bal]) => [name, bal]),
+    ]
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(debtRows), "Debts")
+
+    const label = period.charAt(0).toUpperCase() + period.slice(1)
+    XLSX.writeFile(wb, `AquaOps_Report_${label}.xlsx`)
+  }
+
+  const handlePdfExport = () => {
+    const sym = currencySymbol
+    const fmt = (n: number) => `${sym}${Number(n).toLocaleString()}`
+
+    const salesHTML = rawSales.map((s) =>
+      `<tr><td>${s.date}</td><td>${s.customer_name}</td><td>${s.product_type}</td><td>${s.bags_sold}</td><td>${fmt(s.total_amount)}</td><td>${fmt(s.balance)}</td></tr>`
+    ).join("")
+
+    const prodHTML = rawProduction.map((p) =>
+      `<tr><td>${p.date}</td><td>${p.product_type}</td><td>${p.bags_produced}</td><td>${p.shift}</td></tr>`
+    ).join("")
+
+    const expHTML = rawExpenses.map((e) =>
+      `<tr><td>${e.date || (e.created_at || "").split("T")[0]}</td><td>${e.cost_group}</td><td>${e.category}</td><td>${fmt(e.amount)}</td></tr>`
+    ).join("")
+
+    const debtMap: Record<string, number> = {}
+    rawDebts.forEach((d) => {
+      const name = d.customer_name || "Unknown"
+      debtMap[name] = (debtMap[name] || 0) + Number(d.balance || 0)
+    })
+    const debtHTML = Object.entries(debtMap).map(([name, bal]) =>
+      `<tr><td>${name}</td><td>${fmt(bal as number)}</td></tr>`
+    ).join("")
+
+    const html = `<!DOCTYPE html><html><head><title>AquaOps Report</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+  h1 { color: #0d1b3e; margin-bottom: 4px; }
+  h2 { color: #2563eb; margin: 20px 0 8px; }
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .card { border: 1px solid #e0e7ff; padding: 12px; border-radius: 8px; }
+  .lbl { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .val { font-size: 18px; font-weight: 700; color: #0d1b3e; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+  th { background: #0d1b3e; color: #fff; padding: 7px 10px; text-align: left; }
+  td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+  .print-btn { margin-top: 24px; padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  @media print { .print-btn { display: none; } }
+</style></head><body>
+<h1>AquaOps — Operational Report</h1>
+<p style="color:#666;font-size:13px">Period: <strong>${period}</strong> &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString()}</p>
+<div class="summary">
+  <div class="card"><div class="lbl">Total Sales</div><div class="val">${fmt(data.sales)}</div></div>
+  <div class="card"><div class="lbl">Total Costs</div><div class="val">${fmt(data.costs)}</div></div>
+  <div class="card"><div class="lbl">Net Profit</div><div class="val">${fmt(profit)}</div></div>
+  <div class="card"><div class="lbl">Debt Exposure</div><div class="val">${fmt(data.debt)}</div></div>
+</div>
+<h2>Sales</h2>
+<table><tr><th>Date</th><th>Customer</th><th>Product</th><th>Qty</th><th>Total</th><th>Balance</th></tr>${salesHTML || "<tr><td colspan='6'>No records</td></tr>"}</table>
+<h2>Production</h2>
+<table><tr><th>Date</th><th>Type</th><th>Bags</th><th>Shift</th></tr>${prodHTML || "<tr><td colspan='4'>No records</td></tr>"}</table>
+<h2>Expenses</h2>
+<table><tr><th>Date</th><th>Group</th><th>Category</th><th>Amount</th></tr>${expHTML || "<tr><td colspan='4'>No records</td></tr>"}</table>
+<h2>Outstanding Debts</h2>
+<table><tr><th>Customer</th><th>Balance</th></tr>${debtHTML || "<tr><td colspan='2'>No records</td></tr>"}</table>
+<button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+</body></html>`
+
+    const blob = new Blob([html], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    window.open(url, "_blank")
   }
 
   const insightStyle = {
@@ -387,14 +508,14 @@ Total: ${fc(data.costs)}
           {/* EXPORT */}
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => alert("Excel export coming soon")}
+              onClick={handleExcelExport}
               className="flex items-center justify-center gap-2 py-3 bg-green-50 text-green-700 rounded-xl text-sm font-semibold border border-green-100"
             >
               <FileSpreadsheet size={16} />
               Export Excel
             </button>
             <button
-              onClick={() => alert("PDF export coming soon")}
+              onClick={handlePdfExport}
               className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-[#2563eb] rounded-xl text-sm font-semibold border border-blue-100"
             >
               <FileText size={16} />

@@ -26,7 +26,7 @@ type ActivityItem = {
   created_at: string
 }
 
-export function HistoryScreen({
+export function HistoryScreen({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
   setActiveTab,
 }: {
   setActiveTab: (tab: string) => void
@@ -305,7 +305,15 @@ export function HistoryScreen({
   }
 
   return (
-    <div className="p-3 space-y-3 pb-24">
+    <div className="p-4 space-y-5 pb-24">
+
+      {/* BACK */}
+      <button
+        onClick={() => setActiveTab("reports")}
+        className="flex items-center gap-1 text-sm text-[#2563eb] font-medium"
+      >
+        ← Back to Reports
+      </button>
 
       {/* HEADER */}
       <div>
