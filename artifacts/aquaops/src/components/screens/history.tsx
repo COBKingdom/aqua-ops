@@ -26,7 +26,7 @@ type ActivityItem = {
   created_at: string
 }
 
-export function HistoryScreen({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+export function HistoryScreen({
   setActiveTab,
 }: {
   setActiveTab: (tab: string) => void
