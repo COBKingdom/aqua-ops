@@ -27,7 +27,6 @@ import { AdminDashboard } from "@/components/screens/admin-dashboard"
 import { AdminPayments } from "@/components/screens/admin-payments"
 import { AdminRevenue } from "@/components/screens/admin-revenue"
 import { AdminCustomers }  from "@/components/screens/admin-customers"
-import { OfflineProvider } from "@/contexts/OfflineContext"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { RenewSubscription } from "@/components/screens/renew-subscription"
 import { UserManagement } from "@/components/screens/user-management"
@@ -209,8 +208,7 @@ export default function WaterFactoryApp() {
   if (factoryStatus === "suspended") {
     return (
       <ProtectedRoute>
-         <OfflineProvider> 
-        
+                 
         <div className="h-screen bg-[#eef0f5] max-w-md mx-auto flex flex-col items-center justify-center p-8 text-center">
           <div className="text-5xl mb-4">🚫</div>
           <h2 className="text-xl font-bold text-[#0d1b3e] mb-2">Account Suspended</h2>
@@ -232,7 +230,7 @@ export default function WaterFactoryApp() {
             Sign Out
           </button>
         </div>
-         </OfflineProvider>  
+         
       </ProtectedRoute>
     )
   }

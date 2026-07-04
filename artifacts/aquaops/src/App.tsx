@@ -2,7 +2,8 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider }  from "@/contexts/AuthContext";
+import { OfflineProvider } from "@/contexts/OfflineContext";
 import { AquaOpsEntry } from "@/components/aquaops-entry";
 import WaterFactoryApp from "@/components/water-factory-app";
 import { ForgotPasswordScreen } from "@/components/screens/forgot-password";
@@ -28,9 +29,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+           <OfflineProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
+          </OfflineProvider>
         </AuthProvider>
         <Toaster />
       </TooltipProvider>
