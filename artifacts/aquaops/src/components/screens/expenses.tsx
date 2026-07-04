@@ -1,17 +1,22 @@
 
 
 import { useState } from "react"
-
-import { supabase } from "@/lib/supabase"
-
+import { supabase }    from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
+import { enqueue }     from "@/lib/offline-db"
+import { useOffline }  from "@/contexts/OfflineContext"
 
 export function Expenses() {
   const [loading, setLoading] =
     useState(false)
 
-   const [saved, setSaved] =
+  const [saved, setSaved] =
     useState(false)
+
+  const [savedOffline, setSavedOffline] =
+    useState(false)
+
+  const { refreshCounts } = useOffline()
 
   const [date, setDate] =
     useState(new Date().toISOString().split("T")[0])
@@ -96,27 +101,33 @@ const factoryId =
         return
       }
 
-      const { error } =
-        await supabase
-          .from("expenses")
-          .insert({
-            factory_id: factoryId,
-            date,
-            amount: Number(amount),
-            notes,
-            cost_group: costGroup,
-            category,
-          })
+      const expenseRecord = {
+        factory_id: factoryId,
+        amount:     Number(amount),
+        notes,
+        cost_group: costGroup,
+        category,
+      }
 
-      if (error) {
-        alert(error.message)
-        return
+      if (!navigator.onLine) {
+        await enqueue("expenses", expenseRecord)
+        refreshCounts()
+        setSavedOffline(true)
+      } else {
+        const { error } = await supabase
+          .from("expenses")
+          .insert({ ...expenseRecord, local_id: crypto.randomUUID() })
+
+        if (error) {
+          await enqueue("expenses", expenseRecord)
+          refreshCounts()
+          setSavedOffline(true)
+        }
       }
 
       // RESET FORM
       setAmount("")
       setNotes("")
-      setDate(new Date().toISOString().split("T")[0])
 
       // SUCCESS STATE
       setSaved(true)

@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 
-import { supabase } from "@/lib/supabase"
-
+import { supabase }    from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
+import { enqueue }     from "@/lib/offline-db"
+import { useOffline }  from "@/contexts/OfflineContext"
 
 import {
   ShoppingCart,
@@ -14,8 +15,13 @@ export function Sales() {
   const [saved, setSaved] =
     useState(false)
 
+  const [savedOffline, setSavedOffline] =
+    useState(false)
+
   const [loading, setLoading] =
     useState(false)
+
+  const { refreshCounts } = useOffline()
 
   const [form, setForm] =
     useState({
@@ -85,59 +91,41 @@ export function Sales() {
           return
         }
 
-        const { error } =
-          await supabase
-            .from("sales")
-            .insert([
-              {
-                factory_id:
-                  factoryId,
-
-                date: form.date,
-
-                customer_name:
-                  form.customerName,
-
-                product_type:
-                  form.productType,
-
-                bags_sold:
-                  Number(
-                    form.bagsSold
-                  ),
-
-                price_per_bag:
-                  Number(
-                    form.pricePerBag
-                  ),
-
-                total_amount:
-                  totalAmount,
-
-                amount_paid:
-                  Number(
-                    form.amountPaid || 0
-                  ),
-
-                balance,
-              },
-            ])
-
-        if (error) {
-          console.error(error)
-
-          alert(
-            "Failed to save sale"
-          )
-
-          return
+        const saleRecord = {
+          factory_id:    factoryId,
+          date:          form.date,
+          customer_name: form.customerName,
+          product_type:  form.productType,
+          bags_sold:     Number(form.bagsSold),
+          price_per_bag: Number(form.pricePerBag),
+          total_amount:  totalAmount,
+          amount_paid:   Number(form.amountPaid || 0),
+          balance,
         }
 
-        // SUCCESS
-        setSaved(true)
+        if (!navigator.onLine) {
+          await enqueue("sales", saleRecord)
+          refreshCounts()
+          setSavedOffline(true)
+          setSaved(true)
+        } else {
+          const { error } = await supabase
+            .from("sales")
+            .insert([{ ...saleRecord, local_id: crypto.randomUUID() }])
+
+          if (error) {
+            // Fallback: save locally
+            await enqueue("sales", saleRecord)
+            refreshCounts()
+            setSavedOffline(true)
+          }
+
+          setSaved(true)
+        }
 
         setTimeout(() => {
           setSaved(false)
+          setSavedOffline(false)
 
           setForm({
             ...form,

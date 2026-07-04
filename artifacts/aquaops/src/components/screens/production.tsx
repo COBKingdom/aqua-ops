@@ -1,6 +1,8 @@
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState }    from "react"
+import { supabase }    from "@/lib/supabase"
 import { getFactoryId } from "@/lib/factory"
+import { enqueue }     from "@/lib/offline-db"
+import { useOffline }  from "@/contexts/OfflineContext"
 import { Factory, Trash2, Plus } from "lucide-react"
 
 const LOSS_TYPES = [
@@ -24,8 +26,11 @@ type LossRow = {
 let _lossCounter = 1
 
 export function Production() {
-  const [saved, setSaved] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [saved, setSaved]             = useState(false)
+  const [savedOffline, setSavedOffline] = useState(false)
+  const [saving, setSaving]           = useState(false)
+
+  const { refreshCounts } = useOffline()
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -77,7 +82,7 @@ export function Production() {
   }
 
   const handleSubmit = async () => {
-    if (!supabase) {
+    if (!supabase && navigator.onLine) {
       alert("Service unavailable. Please try again later.")
       return
     }
@@ -108,56 +113,60 @@ export function Production() {
 
     setSaving(true)
 
-    const { data: prodData, error: prodError } = await supabase
-      .from("production")
-      .insert([
-        {
-          factory_id: factoryId,
-          date: form.date,
-          product_type: form.productType,
-          bags_produced: Number(form.bagsProduced),
-          pieces_per_bag: Number(form.piecesPerBag),
-          shift: form.shift,
-        },
-      ])
-      .select("id")
-      .single()
+    const productionRecord = {
+      factory_id:     factoryId,
+      date:           form.date,
+      product_type:   form.productType,
+      bags_produced:  Number(form.bagsProduced),
+      pieces_per_bag: Number(form.piecesPerBag),
+      shift:          form.shift,
+    }
 
-    if (prodError || !prodData) {
-      console.error(prodError)
-      alert("Error saving production")
+    const lossPayload = losses.map((l) => ({
+      factory_id:   factoryId,
+      product_type: form.productType,
+      loss_type:    l.lossType === "Other" ? l.otherType.trim() || "Other" : l.lossType,
+      quantity:     Number(l.quantity) || 0,
+      reason:       l.reason,
+    }))
+
+    if (!navigator.onLine || !supabase) {
+      await enqueue("production", { record: productionRecord, losses: lossPayload })
+      refreshCounts()
+      setSavedOffline(true)
       setSaving(false)
-      return
+      setSaved(true)
+    } else {
+      const { data: prodData, error: prodError } = await supabase
+        .from("production")
+        .insert([{ ...productionRecord, local_id: crypto.randomUUID() }])
+        .select("id")
+        .single()
+
+      if (prodError || !prodData) {
+        await enqueue("production", { record: productionRecord, losses: lossPayload })
+        refreshCounts()
+        setSavedOffline(true)
+        setSaving(false)
+        setSaved(true)
+      } else {
+        const productionId = (prodData as { id: string | number }).id
+
+        if (lossPayload.length > 0) {
+          const lossRows = lossPayload.map(l => ({ ...l, production_id: productionId }))
+          const { error: lossError } = await supabase
+            .from("production_losses")
+            .insert(lossRows)
+          if (lossError) {
+            console.error(lossError)
+            alert("Production saved but losses could not be recorded")
+          }
+        }
+
+        setSaving(false)
+        setSaved(true)
+      }
     }
-
-    const productionId = (prodData as { id: string | number }).id
-
-    if (losses.length > 0) {
-      const lossRows = losses.map((l) => ({
-        production_id: productionId,
-        factory_id: factoryId,
-        product_type: form.productType,
-        loss_type:
-          l.lossType === "Other"
-            ? l.otherType.trim() || "Other"
-            : l.lossType,
-        quantity: Number(l.quantity) || 0,
-        reason: l.reason,
-      }))
-
-      const { error: lossError } = await supabase
-        .from("production_losses")
-        .insert(lossRows)
-
-if (lossError) {
-  console.error("Production loss save error:", lossError)
-  alert("An error occurred while saving production losses.")
-  return
-}
-    }
-
-    setSaving(false)
-    setSaved(true)
 
     setTimeout(() => {
       setSaved(false)
