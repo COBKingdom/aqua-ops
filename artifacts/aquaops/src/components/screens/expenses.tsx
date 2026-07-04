@@ -134,6 +134,7 @@ const factoryId =
 
       setTimeout(() => {
         setSaved(false)
+        setSavedOffline(false)
       }, 2000)
 
     } catch (error) {
