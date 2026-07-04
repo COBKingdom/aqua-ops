@@ -1,21 +1,42 @@
 import { supabase } from "./supabase"
 
+const FACTORY_ID_CACHE_KEY = "cachedFactoryId"
+
 export async function getFactoryId() {
+  // Offline path — use cached factory ID immediately, no network call
+  if (!navigator.onLine) {
+    return localStorage.getItem(FACTORY_ID_CACHE_KEY) || null
+  }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) return null
+    if (!user) {
+      // Auth glitch fallback — use cache rather than hard-blocking
+      return localStorage.getItem(FACTORY_ID_CACHE_KEY) || null
+    }
 
-  const { data: membership } =
-    await supabase
-      .from("factory_users")
-      .select("factory_id")
-      .eq("user_id", user.id)
-      .single()
+    const { data: membership } =
+      await supabase
+        .from("factory_users")
+        .select("factory_id")
+        .eq("user_id", user.id)
+        .single()
 
-  return membership?.factory_id || null
+    const factoryId = membership?.factory_id || null
+
+    // Cache for offline use on every successful lookup
+    if (factoryId) {
+      localStorage.setItem(FACTORY_ID_CACHE_KEY, factoryId)
+    }
+
+    return factoryId
+  } catch {
+    // Network error despite navigator.onLine being true (captive portal, flaky signal)
+    return localStorage.getItem(FACTORY_ID_CACHE_KEY) || null
+  }
 }
 
 export function getFactoryName() {
