@@ -50,8 +50,8 @@ export function MoreMenu({ subTab, onSubTabChange }: MoreMenuProps) {
             <Droplets className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">AquaTrack</h2>
-            <p className="text-sm text-muted-foreground">Water Factory Manager</p>
+            <h2 className="text-xl font-bold text-foreground">AquaOps</h2>
+            <p className="text-sm text-muted-foreground">Water Production Platform</p>
           </div>
         </CardContent>
       </Card>

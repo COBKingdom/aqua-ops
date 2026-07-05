@@ -745,13 +745,13 @@ td.empty{text-align:center;color:#94a3b8;padding:20px}
                 onClick={handleWhatsApp}
                 className="flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold"
               >
-                Share WhatsApp
+                Share Summary (WhatsApp)
               </button>
               <button
                 onClick={handleEmail}
                 className="flex items-center justify-center gap-2 py-3 bg-gray-800 text-white rounded-xl text-sm font-semibold"
               >
-                Share Email
+                Share Summary (Email)
               </button>
             </div>
           )}
