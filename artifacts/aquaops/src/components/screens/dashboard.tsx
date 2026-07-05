@@ -9,7 +9,6 @@ import {
   TrendingDown,
   Users,
   Zap,
-  Banknote,
   Landmark,
   MoreHorizontal,
 } from "lucide-react"
@@ -291,11 +290,10 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* ── 4. KPI GRID (3 rows × 2 cards) ────────────────── */}
+      {/* ── 4. OPERATIONS OVERVIEW ─────────────────────────── */}
+      <h2 className="text-sm font-bold text-[#0d1b3e] px-1">Operations Overview</h2>
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "Sales Revenue",  value: fc(data.sales),                   icon: ShoppingCart, accent: "text-[#2563eb]", bg: "bg-blue-50 border-blue-100"     },
-          { label: "Total Expenses", value: fc(data.costs),                   icon: Wallet,       accent: "text-red-500",  bg: "bg-red-50 border-red-100"       },
           { label: "Bags Produced",  value: `${data.production} bags`,        icon: Package,      accent: "text-green-600",bg: "bg-green-50 border-green-100"   },
           { label: "Customer Debts", value: fc(data.debt),                    icon: Users,        accent: "text-orange-500",bg:"bg-orange-50 border-orange-100" },
           { label: "Sachet Stock",   value: `${data.sachetStock} bags`,       icon: Zap,          accent: "text-purple-500",bg:"bg-purple-50 border-purple-100" },
@@ -375,7 +373,6 @@ export function Dashboard({
             { label: "Add Expense", sub: "Record an expense",      icon: Wallet,       tab: "expenses",   bg: "bg-white border border-gray-100",     iconColor: "text-red-500"   },
             { label: "Production",  sub: "Record production",      icon: Package,      tab: "production", bg: "bg-white border border-gray-100",     iconColor: "text-green-600" },
             { label: "Add Debt",    sub: "Record customer debt",   icon: Users,        tab: "debts",      bg: "bg-white border border-gray-100",     iconColor: "text-orange-500"},
-            { label: "Add Loan",    sub: "Record a loan",          icon: Banknote,     tab: "loans",      bg: "bg-white border border-gray-100",     iconColor: "text-purple-500"},
             { label: "Bank",        sub: "Manage bank transactions",icon: Landmark,    tab: "bank",       bg: "bg-white border border-gray-100",     iconColor: "text-[#2563eb]" },
             { label: "Reports",     sub: "View reports",           icon: BarChart3,    tab: "reports",    bg: "bg-white border border-gray-100",     iconColor: "text-teal-600"  },
             { label: "More",        sub: "More actions",           icon: MoreHorizontal,tab: "account",  bg: "bg-white border border-gray-100",     iconColor: "text-gray-400"  },
