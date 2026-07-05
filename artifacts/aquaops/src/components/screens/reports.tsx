@@ -735,7 +735,7 @@ td.empty{text-align:center;color:#94a3b8;padding:20px}
             className="w-full flex items-center justify-center gap-2 py-3 bg-[#0d1b3e] text-white rounded-xl text-sm font-semibold"
           >
             <History size={16} />
-            Import Historical Data
+            Historical Data
           </button>
 
           {/* SHARE — premium only */}
