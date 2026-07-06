@@ -8,6 +8,7 @@ import { AquaOpsEntry } from "@/components/aquaops-entry";
 import WaterFactoryApp from "@/components/water-factory-app";
 import { ForgotPasswordScreen } from "@/components/screens/forgot-password";
 import { ResetPasswordScreen } from "@/components/screens/reset-password";
+import { JoinFactory } from "@/components/screens/join-factory";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/aquaops" component={WaterFactoryApp} />
       <Route path="/forgot-password" component={ForgotPasswordScreen} />
       <Route path="/reset-password" component={ResetPasswordScreen} />
+      <Route path="/join" component={JoinFactory} />
       <Route component={NotFound} />
     </Switch>
   );

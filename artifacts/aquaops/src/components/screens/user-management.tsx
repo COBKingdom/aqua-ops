@@ -21,6 +21,9 @@ export function UserManagement({
   const [factoryId, setFactoryId] =
     useState("")
 
+  const [factoryDisplayName, setFactoryDisplayName] =
+    useState("")
+
   const [currentUserId, setCurrentUserId] =
     useState("")
 
@@ -76,6 +79,7 @@ export function UserManagement({
       if (!factory) return
 
       setFactoryId(factory.id)
+      setFactoryDisplayName(factory.name || "")
       setCurrentUserRole(
         factory.role || "owner"
       )
@@ -182,6 +186,33 @@ export function UserManagement({
       setNewInviteCode(
         data.invite_code
       )
+
+      // SEND INVITATION EMAIL (non-blocking)
+      const apiUrl =
+        import.meta.env.VITE_API_URL
+
+      if (apiUrl) {
+        fetch(
+          `${apiUrl}/api/send-invitation`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              factoryName: factoryDisplayName,
+              inviteCode: data.invite_code,
+              role: inviteRole,
+            }),
+          }
+        ).catch((err) =>
+          console.error(
+            "Invitation email failed:",
+            err
+          )
+        )
+      }
 
       setInviteEmail("")
       setInviteRole("data_entry")
