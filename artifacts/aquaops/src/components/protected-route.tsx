@@ -11,6 +11,9 @@ import {
   hasAppAccess,
 } from "@/lib/subscription"
 
+import { supabase } from "@/lib/supabase"
+import { getCurrentFactory } from "@/lib/current-factory"
+
 import {
   SubscriptionExpired,
 } from "@/components/screens/subscription-expired"
@@ -53,12 +56,57 @@ export function ProtectedRoute({
             return
           }
 
-          const allowed =
-            await hasAppAccess()
+                   const factory =
+            await getCurrentFactory()
 
-          setAccessAllowed(
-            allowed
-          )
+          if (!factory) {
+            setAccessAllowed(false)
+            return
+          }
+
+          if (factory.role === "owner") {
+
+            // OWNER — CHECK OWN SUBSCRIPTION
+            const allowed =
+              await hasAppAccess()
+
+            setAccessAllowed(allowed)
+
+          } else {
+
+            // TEAM MEMBER — INHERIT FROM FACTORY OWNER'S SUBSCRIPTION
+            // Derive owner from factory_users (safest source of truth)
+            const { data: ownerMembership } =
+              await supabase
+                .from("factory_users")
+                .select("user_id")
+                .eq("factory_id", factory.id)
+                .eq("role", "owner")
+                .eq("is_active", true)
+                .limit(1)
+                .maybeSingle()
+
+            if (!ownerMembership) {
+              setAccessAllowed(false)
+              return
+            }
+
+            const { data: ownerSub } =
+              await supabase
+                .from("saas_customers")
+                .select("status")
+                .eq("user_id", ownerMembership.user_id)
+                .maybeSingle()
+
+            const ownerHasAccess =
+              ownerSub?.status === "Trial" ||
+              ownerSub?.status === "Active"
+
+            setAccessAllowed(
+              ownerHasAccess ?? false
+            )
+
+          }
 
         } catch (error) {
           console.error(
