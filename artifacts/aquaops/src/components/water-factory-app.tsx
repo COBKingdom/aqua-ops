@@ -33,6 +33,7 @@ import { UserManagement } from "@/components/screens/user-management"
 import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { supabase } from "@/lib/supabase"
 import { supportUrl } from "@/config/support"
+import { StockScreen } from "@/components/screens/stock"
 
 function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -103,8 +104,10 @@ export default function WaterFactoryApp() {
             factory.name
           )
 
-          setFactoryStatus(factory.status || "active")
-          setUserRole(factory.role || "owner")
+           setFactoryStatus(factory.status || "active")
+          const role = factory.role || "owner"
+          setUserRole(role)
+          if (role === "data_entry") setActiveTab("production")
 
           // OPTIONAL UI CACHE
           localStorage.setItem("factoryName", factory.name)
@@ -240,22 +243,17 @@ export default function WaterFactoryApp() {
 
     // DATA ENTRY ROLE RESTRICTION
     const ALLOWED_DATA_ENTRY = [
-      "dashboard",
       "production",
       "sales",
       "expenses",
+      "stock",
     ]
 
     if (
       userRole === "data_entry" &&
       !ALLOWED_DATA_ENTRY.includes(activeTab)
     ) {
-      return (
-        <Dashboard
-          setActiveTab={setActiveTab}
-          isDemoMode={isDemoMode}
-        />
-      )
+      return <Production />
     }
 
     if (
@@ -361,9 +359,9 @@ if (activeTab === "data-migration") {
       )
     }
 
+    if (activeTab === "stock") return <StockScreen />
     return <Dashboard setActiveTab={setActiveTab} />
   }
-
   // DEMO SHELL — no auth required
   if (isDemoMode) {
     return (
@@ -433,18 +431,25 @@ if (activeTab === "data-migration") {
                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                       <p className="text-xs font-bold text-[#0d1b3e] truncate">{factoryName}</p>
                       <p className="text-[11px] text-gray-400 truncate mt-0.5">{user?.email ?? ""}</p>
-                      {isAdmin && (
+                    {isAdmin && (
                         <span className="inline-block mt-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
                           Administrator
                         </span>
                       )}
+                      {!isAdmin && userRole === "data_entry" && (
+                        <span className="inline-block mt-1 text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+                          Data Entry Staff
+                        </span>
+                      )}
                     </div>
-                    <button
-                      onClick={() => { setShowDropdown(false); setActiveTab("account") }}
-                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#0d1b3e] hover:bg-gray-50 border-b border-gray-50"
-                    >
-                      👤 Account & Billing
-                    </button>
+                    {userRole === "owner" && (
+                      <button
+                        onClick={() => { setShowDropdown(false); setActiveTab("account") }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium text-[#0d1b3e] hover:bg-gray-50 border-b border-gray-50"
+                      >
+                        👤 Account & Billing
+                      </button>
+                    )}
 
                     {!isAdmin && userRole === "owner" && (
                       <button
