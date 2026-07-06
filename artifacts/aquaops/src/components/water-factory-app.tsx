@@ -359,7 +359,7 @@ if (activeTab === "data-migration") {
       )
     }
 
-    if (activeTab === "stock") return <StockScreen />
+    if (activeTab === "stock") return <StockScreen setActiveTab={setActiveTab} />
     return <Dashboard setActiveTab={setActiveTab} />
   }
   // DEMO SHELL — no auth required
