@@ -332,10 +332,10 @@ export function AccountScreen({
             </div>
 
 <Button
-  disabled
-  className="w-full bg-gray-300 text-gray-600 cursor-not-allowed font-semibold"
+  onClick={handleRenew}
+  className="w-full bg-white text-[#0d1b3e] hover:bg-gray-100 font-semibold"
 >
-  Payments Temporarily Unavailable
+  Renew Subscription
 </Button>
 
           </div>

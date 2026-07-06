@@ -11,8 +11,7 @@ interface RenewSubscriptionProps {
   setActiveTab: (tab: string) => void
 }
 
-// TEMP: disable payments while Flutterwave merchant branding is being updated
-const PAYMENTS_DISABLED = true
+const PAYMENTS_DISABLED = false
 
 export function RenewSubscription({
   setActiveTab,
