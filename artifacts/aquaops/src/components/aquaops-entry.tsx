@@ -176,10 +176,10 @@ export function AquaOpsEntry() {
           .eq("user_id", authData.user.id)
           .maybeSingle()
 
-        if (!existingSubscription) {
-          const startedAt = new Date()
-          const expiresAt = new Date()
-          expiresAt.setDate(expiresAt.getDate() + 14)
+if (!existingSubscription) {
+  const startedAt = new Date()
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 14)
 
   const {
     error: subscriptionError,
@@ -197,11 +197,32 @@ export function AquaOpsEntry() {
         expiresAt.toISOString(),
     })
 
-          if (subscriptionError) {
-            setErrorMsg("Failed to activate trial. Please contact support.")
-            return
-          }
-        }
+  if (subscriptionError) {
+    setErrorMsg("Failed to activate trial. Please contact support.")
+    return
+  }
+
+  try {
+    await fetch(
+      `${import.meta.env.VITE_API_URL}/send-welcome`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: authData.user.email ?? email,
+          factoryName: pendingFactoryName,
+        }),
+      }
+    )
+  } catch (err) {
+    console.error(
+      "Welcome email failed:",
+      err
+    )
+  }
+}
 
         localStorage.removeItem("pendingFactoryName")
         window.location.href = "/aquaops"
