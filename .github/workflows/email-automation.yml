@@ -1,0 +1,35 @@
+name: AquaOps Email Automation
+
+on:
+  schedule:
+    # Runs daily at 07:00 UTC (8:00 AM WAT — Lagos time)
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  run-email-automation:
+    name: Send Lifecycle Emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger email automation
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST https://aqua-ops.replit.app/api/run-email-automation \
+            -H "Content-Type: application/json" \
+            -H "x-automation-secret: ${{ secrets.AUTOMATION_SECRET }}")
+
+          HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $HTTP_BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Automation failed with status $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "Automation completed successfully."
