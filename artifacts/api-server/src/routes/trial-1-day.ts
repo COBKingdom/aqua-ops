@@ -1,35 +1,36 @@
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;">
 
-  <h2>🚰 Welcome to AquaOps</h2>
+  <h2>⚠️ Your AquaOps Trial Ends Tomorrow</h2>
 
   <p>Hello,</p>
 
   <p>
-    Thank you for registering
+    Your AquaOps trial for
     <strong>${factoryName}</strong>
-    on AquaOps.
+    will expire tomorrow.
   </p>
 
   <p>
-    Your 14-day free trial is now active.
+    To continue using AquaOps without interruption, please upgrade your account.
   </p>
 
   <p>
-    We recommend adding your first:
+    AquaOps helps you stay in control of:
   </p>
 
   <ul>
-    <li>Production Record</li>
-    <li>Sales Record</li>
-    <li>Expense Record</li>
+    <li>Production</li>
+    <li>Sales</li>
+    <li>Expenses</li>
+    <li>Profitability</li>
   </ul>
 
   <p>
-    AquaOps helps water factory owners track production, sales, expenses, debts and profitability from one dashboard.
+    If you're still setting things up or have questions, we'd love to help.
   </p>
 
   <p>
-    Need help getting started? We're happy to assist.
+    Don't wait until your trial expires.
   </p>
 
   <hr>
@@ -48,7 +49,7 @@
   </p>
 
   <p>
-    💬 <a href="https://wa.me/353899550078?text=Hello%20COB,%20I%20need%20help%20setting%20up%20AquaOps%20for%20${encodeURIComponent(factoryName)}.">
+    💬 <a href="https://wa.me/353899550078?text=Hello%20COB,%20my%20AquaOps%20trial%20for%20${encodeURIComponent(factoryName)}%20expires%20tomorrow%20and%20I%20need%20help.">
     Chat on WhatsApp
     </a>
   </p>
