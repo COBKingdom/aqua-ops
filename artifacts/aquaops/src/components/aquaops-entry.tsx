@@ -224,10 +224,26 @@ if (!existingSubscription) {
   }
 }
 
-        localStorage.removeItem("pendingFactoryName")
-        window.location.href = "/aquaops"
-        return
-      }
+  localStorage.removeItem(
+    "pendingFactoryName"
+  )
+
+  // Send welcome email — fire-and-forget, does not block login
+  fetch("https://aqua-ops.replit.app/api/send-welcome", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: authData.user.id,
+      email: authData.user.email,
+      factoryName: pendingFactoryName,
+    }),
+  }).catch(() => {})
+
+  window.location.href =
+    "/aquaops"
+
+  return
+}
 
       // ── SIGNUP ───────────────────────────────────────────────
 
