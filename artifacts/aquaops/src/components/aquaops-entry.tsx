@@ -49,7 +49,7 @@ export function AquaOpsEntry() {
       if (error) {
         setErrorMsg("Could not resend email. Please try again.")
       } else {
-        setInfoMsg("Verification email sent. Please check your inbox.")
+        setInfoMsg("Verification email sent. Please check your inbox or Spam folder.")
         setShowResend(false)
       }
     } catch {
@@ -273,7 +273,7 @@ if (!existingSubscription) {
       if (signupData.user && !signupData.session) {
         localStorage.setItem("pendingFactoryName", factoryName.trim())
         setInfoMsg(
-          "Account created successfully. Please check your email and click the verification link before logging in."
+          "Account created successfully. Please check your Inbox or Spam Folder and click the verification link before logging in."
         )
         setIsLogin(true)
         setEmail(email)
