@@ -63,18 +63,30 @@ export function Reports({
     checkPremium()
   }, [])
 
-  const getDateFilter = () => {
-    const now = new Date()
-    if (period === "today") {
-      const startOfDay = new Date()
-      startOfDay.setHours(0, 0, 0, 0)
-      return startOfDay.toISOString().split("T")[0]
-    }
-    if (period === "week")
-      return new Date(now.getTime() - 7 * 86400000).toISOString().split("T")[0]
-    if (period === "month")
-      return new Date(now.getTime() - 30 * 86400000).toISOString().split("T")[0]
+const getDateFilter = () => {
+  const now = new Date()
+
+  if (period === "today") {
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+
+    return startOfDay
+      .toISOString()
+      .split("T")[0]
   }
+
+  if (period === "week")
+    return new Date(
+      now.getTime() - 7 * 86400000
+    ).toISOString().split("T")[0]
+
+  if (period === "month")
+    return new Date(
+      now.getTime() - 30 * 86400000
+    ).toISOString().split("T")[0]
+
+  return null
+}
 
   const loadReport = async () => {
     try {

@@ -34,6 +34,7 @@ import { MigrationWizard } from "@/components/screens/migration-wizard"
 import { supabase } from "@/lib/supabase"
 import { supportUrl } from "@/config/support"
 import { StockScreen } from "@/components/screens/stock"
+import { CustomersModule } from "@/components/screens/customers-module"
 
 function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -268,6 +269,13 @@ export default function WaterFactoryApp() {
     }
     if (activeTab === "production")          return <Production />
     if (activeTab === "sales")               return <Sales />
+    if (activeTab === "customers") {
+  return (
+    <CustomersModule
+      setActiveTab={setActiveTab}
+    />
+  )
+}
     if (activeTab === "expenses")            return <Expenses />
     if (activeTab === "debts")               return <Debts />
     if (activeTab === "reports")             return <Reports setActiveTab={setActiveTab} />

@@ -45,14 +45,24 @@ export function Dashboard({
     bottleStock: 0,
   })
 
-  const getDateFilter = () => {
-    const now = new Date()
-    if (period === "today") return now.toISOString().split("T")[0]
-    if (period === "week")
-      return new Date(now.getTime() - 7 * 86400000).toISOString().split("T")[0]
-    if (period === "month")
-      return new Date(now.getTime() - 30 * 86400000).toISOString().split("T")[0]
-  }
+const getDateFilter = () => {
+  const now = new Date()
+
+  if (period === "today")
+    return now.toISOString().split("T")[0]
+
+  if (period === "week")
+    return new Date(
+      now.getTime() - 7 * 86400000
+    ).toISOString().split("T")[0]
+
+  if (period === "month")
+    return new Date(
+      now.getTime() - 30 * 86400000
+    ).toISOString().split("T")[0]
+
+  return null
+}
 
   useEffect(() => {
   const loadDashboard = async () => {

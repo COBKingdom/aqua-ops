@@ -12,3 +12,10 @@ dist/
 # Logs
 *.log
 node_modules
+# Environment files
+.env
+.env.local
+.env.*
+**/.env
+**/.env.local
+**/.env.*

@@ -1,9 +1,9 @@
 export function formatCurrency(
-  amount,
+  amount: number | string = 0,
   currency = "NGN",
   symbol = "₦"
 ) {
-  const value = Number(amount || 0)
+  const value = Number(amount)
 
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,

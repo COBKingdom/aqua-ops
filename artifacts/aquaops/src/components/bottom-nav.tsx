@@ -6,7 +6,7 @@ import {
   Users,
   BarChart3,
   Landmark,
-  Banknote,
+  UserCircle2,
   Archive,
 } from "lucide-react"
 
@@ -16,24 +16,29 @@ type BottomNavProps = {
   userRole?: string
 }
 
-export function BottomNav({ activeTab, setActiveTab, userRole = "owner" }: BottomNavProps) {
+export function BottomNav({
+  activeTab,
+  setActiveTab,
+  userRole = "owner",
+}: BottomNavProps) {
 
   const ownerTabs = [
-    { id: "dashboard",   label: "Dashboard",  icon: Home },
-    { id: "production",  label: "Production", icon: Package },
-    { id: "sales",       label: "Sales",      icon: ShoppingCart },
-    { id: "expenses",    label: "Expenses",   icon: Wallet },
-    { id: "debts",       label: "Debts",      icon: Users },
-    { id: "loans",       label: "Loans",      icon: Banknote },
-    { id: "bank",        label: "Bank",       icon: Landmark },
-    { id: "reports",     label: "Reports",    icon: BarChart3 },
+    { id: "dashboard", label: "Dashboard", icon: Home },
+    { id: "production", label: "Production", icon: Package },
+    { id: "sales", label: "Sales", icon: ShoppingCart },
+    { id: "customers", label: "Customers", icon: UserCircle2 },
+    { id: "expenses", label: "Expenses", icon: Wallet },
+    { id: "debts", label: "Debts", icon: Users },
+    { id: "bank", label: "Bank", icon: Landmark },
+    { id: "reports", label: "Reports", icon: BarChart3 },
   ]
 
   const dataEntryTabs = [
-    { id: "production",  label: "Production", icon: Package },
-    { id: "sales",       label: "Sales",      icon: ShoppingCart },
-    { id: "expenses",    label: "Expenses",   icon: Wallet },
-    { id: "stock",       label: "Stock",      icon: Archive },
+    { id: "production", label: "Production", icon: Package },
+    { id: "sales", label: "Sales", icon: ShoppingCart },
+    { id: "customers", label: "Customers", icon: UserCircle2 },
+    { id: "expenses", label: "Expenses", icon: Wallet },
+    { id: "stock", label: "Stock", icon: Archive },
   ]
 
   const tabs = userRole === "data_entry" ? dataEntryTabs : ownerTabs
@@ -41,7 +46,6 @@ export function BottomNav({ activeTab, setActiveTab, userRole = "owner" }: Botto
   return (
     <div className="bg-white border-t border-gray-100">
       <div className="grid grid-cols-4 gap-1.5 p-1.5">
-
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -50,13 +54,11 @@ export function BottomNav({ activeTab, setActiveTab, userRole = "owner" }: Botto
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex flex-col items-center justify-center py-1.5 rounded-lg transition
-                ${
-                  isActive
-                    ? "bg-[#0d1b3e] text-white"
-                    : "bg-white text-[#1f3a8a] border border-[#e0e7ff]"
-                }
-              `}
+              className={`relative flex flex-col items-center justify-center py-1.5 rounded-lg transition ${
+                isActive
+                  ? "bg-[#0d1b3e] text-white"
+                  : "bg-white text-[#1f3a8a] border border-[#e0e7ff]"
+              }`}
             >
               {isActive && (
                 <span className="absolute top-1 right-2 w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
@@ -70,7 +72,6 @@ export function BottomNav({ activeTab, setActiveTab, userRole = "owner" }: Botto
             </button>
           )
         })}
-
       </div>
     </div>
   )

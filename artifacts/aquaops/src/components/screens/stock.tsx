@@ -61,8 +61,8 @@ function OwnerStockScreen() {
       const factoryId = await getFactoryId()
       if (!factoryId) return
       const today = new Date().toISOString().split("T")[0]
-      const sum = (rows: any[], type: string, col: string) =>
-        (rows || []).filter((r) => r.product_type === type).reduce((a, r) => a + (Number(r[col]) || 0), 0)
+      const sum = (rows: any[] | null, type: string, col: string) =>
+      (rows || []).filter((r) => r.product_type === type).reduce((a, r) => a + (Number(r[col]) || 0), 0)
       const [{ data: prod }, { data: sold }, { data: tp }, { data: ts }] = await Promise.all([
         supabase.from("production").select("product_type,bags_produced").eq("factory_id", factoryId),
         supabase.from("sales").select("product_type,bags_sold").eq("factory_id", factoryId),
@@ -166,8 +166,8 @@ function DataEntryStockScreen({ setActiveTab }: { setActiveTab?: (tab: string) =
       if (!factoryId) return
       const today = new Date().toISOString().split("T")[0]
       const fromDate = filter === "today" ? today : nDaysAgo(7)
-      const sum = (rows: any[], type: string, col: string) =>
-        (rows || []).filter((r) => r.product_type === type).reduce((a, r) => a + (Number(r[col]) || 0), 0)
+      const sum = (rows: any[] | null, type: string, col: string) =>
+      (rows || []).filter((r) => r.product_type === type).reduce((a, r) => a + (Number(r[col]) || 0), 0)
       const [
         { data: allProd }, { data: allSold },
         { data: filtProd }, { data: filtSold },
