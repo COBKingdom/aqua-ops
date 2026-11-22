@@ -261,25 +261,24 @@ Deno.serve(async (req) => {
       )
     }
 
-    const confirmationName = body.confirmation_name
+const confirmationName = body.confirmation_name
 
-    if (
-      typeof confirmationName !== "string" ||
-      confirmationName.length === 0
-    ) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "Enter the exact factory name to confirm deletion.",
-        },
-        400
-      )
-    }
+if (
+  typeof confirmationName !== "string" ||
+  !confirmationName.trim().length
+) {
+  return jsonResponse(
+    {
+      success: false,
+      error: "Factory name confirmation is required.",
+    },
+    400
+  )
+}
 
-    // Exact comparison against factories.name.
-    // No trimming or case conversion is performed.
-    if (confirmationName !== factory.name) {
+// Trim accidental leading/trailing spaces but preserve
+// spelling and capitalization.
+if (confirmationName.trim() !== factory.name.trim()) {
       return jsonResponse(
         {
           success: false,

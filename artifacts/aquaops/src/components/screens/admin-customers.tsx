@@ -144,15 +144,18 @@ export function AdminCustomers() {
         )
       }
 
-      const verifiedName = verificationResult.data.factory_name
+const verifiedName = verificationResult.data.factory_name
 
-      if (typeof verifiedName !== "string" || !verifiedName.length) {
+if (
+  typeof verifiedName !== "string" ||
+  !verifiedName.trim().length
+) {
         throw new Error(
           "The factory's registered name could not be verified."
         )
       }
 
-      setCanonicalFactoryName(verifiedName)
+      setCanonicalFactoryName(verifiedName.trim())
 
       if (membersRes.error) throw membersRes.error
       if (salesRes.error) throw salesRes.error
@@ -180,9 +183,9 @@ export function AdminCustomers() {
 
   const handleDeleteFactory = async () => {
     if (
-      !managed ||
-      !canonicalFactoryName ||
-      deleteConfirmation !== canonicalFactoryName
+!managed ||
+!canonicalFactoryName ||
+deleteConfirmation.trim() !== canonicalFactoryName.trim()
     ) {
       return
     }
@@ -549,7 +552,7 @@ export function AdminCustomers() {
                   disabled={
                     deleting ||
                     !canonicalFactoryName ||
-                    deleteConfirmation !== canonicalFactoryName
+                    deleteConfirmation.trim() !== canonicalFactoryName.trim()
                   }
                   className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
