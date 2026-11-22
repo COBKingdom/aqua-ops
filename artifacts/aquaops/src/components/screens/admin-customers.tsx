@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
@@ -35,10 +36,14 @@ export function AdminCustomers() {
   const [details, setDetails] = useState<FactoryDetails | null>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
 
+  const [canonicalFactoryName, setCanonicalFactoryName] = useState("")
+  const [factoryVerificationError, setFactoryVerificationError] = useState("")
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState("")
+  const [deleteSuccess, setDeleteSuccess] = useState("")
 
   useEffect(() => {
     loadCustomers()
@@ -57,7 +62,7 @@ export function AdminCustomers() {
 
       setCustomers(data || [])
     } catch (err) {
-      console.error(err)
+      console.error("Unable to load AquaOps customers:", err)
     } finally {
       setLoading(false)
     }
@@ -67,35 +72,92 @@ export function AdminCustomers() {
     setManaged(customer)
     setDetails(null)
     setDetailsLoading(true)
+
+    setCanonicalFactoryName("")
+    setFactoryVerificationError("")
     setShowDeleteConfirm(false)
     setDeleteConfirmation("")
     setDeleteError("")
+    setDeleteSuccess("")
+
+    const id = customer.factory_id
 
     try {
-      const id = customer.factory_id
+      const [
+        verificationResult,
+        membersRes,
+        salesRes,
+        prodRes,
+        expRes,
+      ] = await Promise.all([
+        supabase.functions.invoke("admin-delete-factory", {
+          body: {
+            action: "verify",
+            factory_id: id,
+          },
+        }),
 
-      const [membersRes, salesRes, prodRes, expRes] =
-        await Promise.all([
-          supabase
-            .from("factory_users")
-            .select("id, user_id, role")
-            .eq("factory_id", id),
+        supabase
+          .from("factory_users")
+          .select("id, user_id, role")
+          .eq("factory_id", id),
 
-          supabase
-            .from("sales")
-            .select("id", { count: "exact", head: true })
-            .eq("factory_id", id),
+        supabase
+          .from("sales")
+          .select("id", { count: "exact", head: true })
+          .eq("factory_id", id),
 
-          supabase
-            .from("production")
-            .select("id", { count: "exact", head: true })
-            .eq("factory_id", id),
+        supabase
+          .from("production")
+          .select("id", { count: "exact", head: true })
+          .eq("factory_id", id),
 
-          supabase
-            .from("expenses")
-            .select("id", { count: "exact", head: true })
-            .eq("factory_id", id),
-        ])
+        supabase
+          .from("expenses")
+          .select("id", { count: "exact", head: true })
+          .eq("factory_id", id),
+      ])
+
+      if (verificationResult.error) {
+        throw new Error(
+          verificationResult.error.message ||
+          "Unable to verify the factory name."
+        )
+      }
+
+      if (!verificationResult.data?.success) {
+        throw new Error(
+          verificationResult.data?.error ||
+          "Unable to verify this factory."
+        )
+      }
+
+      if (verificationResult.data.is_internal === true) {
+        throw new Error(
+          "This is an internal factory and cannot be deleted."
+        )
+      }
+
+      if (verificationResult.data.is_platform_admin === true) {
+        throw new Error(
+          "The Platform Admin factory is protected."
+        )
+      }
+
+      const verifiedName = verificationResult.data.factory_name
+
+      if (typeof verifiedName !== "string" || !verifiedName.length) {
+        throw new Error(
+          "The factory's registered name could not be verified."
+        )
+      }
+
+      setCanonicalFactoryName(verifiedName)
+
+      if (membersRes.error) throw membersRes.error
+      if (salesRes.error) throw salesRes.error
+      if (prodRes.error) throw prodRes.error
+      if (expRes.error) throw expRes.error
 
       setDetails({
         members: membersRes.data || [],
@@ -104,47 +166,117 @@ export function AdminCustomers() {
         expCount: expRes.count || 0,
       })
     } catch (err) {
-      console.error(err)
+      console.error("Unable to load factory details:", err)
+
+      setFactoryVerificationError(
+        err instanceof Error
+          ? err.message
+          : "Unable to verify this factory."
+      )
     } finally {
       setDetailsLoading(false)
     }
   }
 
-  // Permanently delete selected factory
   const handleDeleteFactory = async () => {
-    if (!managed || deleteConfirmation !== managed.factory_name) return
+    if (
+      !managed ||
+      !canonicalFactoryName ||
+      deleteConfirmation !== canonicalFactoryName
+    ) {
+      return
+    }
 
     setDeleting(true)
     setDeleteError("")
+    setDeleteSuccess("")
 
     try {
       const { data, error } = await supabase.functions.invoke(
         "admin-delete-factory",
         {
           body: {
+            action: "delete",
             factory_id: managed.factory_id,
             confirmation_name: deleteConfirmation,
           },
         }
       )
 
-      if (error) throw error
+      if (error) {
+        let message = error.message || "Factory deletion failed."
+
+        const context = (error as any).context
+
+        if (context && typeof context.json === "function") {
+          try {
+            const responseBody = await context.json()
+
+            message =
+              responseBody?.error ||
+              responseBody?.message ||
+              message
+          } catch {
+            // Keep the original error message.
+          }
+        }
+
+        throw new Error(message)
+      }
 
       if (!data?.success) {
         throw new Error(
-          data?.error || data?.message || "Factory deletion failed."
+          data?.error ||
+          data?.message ||
+          "Factory deletion was not completed."
         )
       }
 
+      const deletedCount = Array.isArray(data.deleted_users)
+        ? data.deleted_users.length
+        : 0
+
+      const alreadyMissingCount = Array.isArray(data.already_missing_users)
+        ? data.already_missing_users.length
+        : 0
+
+      const failedCount = Array.isArray(data.failed_users)
+        ? data.failed_users.length
+        : 0
+
+      if (
+        failedCount > 0 ||
+        data.auth_cleanup_complete === false
+      ) {
+        setDeleteError(
+          data.message ||
+          `Factory data was deleted, but ${failedCount} Auth account(s) still need attention.`
+        )
+
+        await loadCustomers()
+        return
+      }
+
+      setDeleteSuccess(
+        `${data.message || "Factory deleted successfully."} ` +
+        `Auth accounts deleted: ${deletedCount}; ` +
+        `already missing: ${alreadyMissingCount}.`
+      )
+
       setManaged(null)
       setDetails(null)
+      setCanonicalFactoryName("")
       setShowDeleteConfirm(false)
       setDeleteConfirmation("")
 
       await loadCustomers()
     } catch (err) {
+      console.error("Factory deletion error:", err)
+
       setDeleteError(
-        err instanceof Error ? err.message : "Unable to delete factory."
+        err instanceof Error
+          ? err.message
+          : "Unable to delete factory."
       )
     } finally {
       setDeleting(false)
@@ -157,12 +289,14 @@ export function AdminCustomers() {
     return Math.max(
       0,
       Math.ceil(
-        (new Date(expiresAt).getTime() - Date.now()) / 86_400_000
+        (new Date(expiresAt).getTime() - Date.now()) /
+        86_400_000
       )
     )
   }
 
   const totalCustomers = customers.length
+
   const activeCustomers = customers.filter(
     c => c.status === "Active"
   ).length
@@ -175,7 +309,8 @@ export function AdminCustomers() {
     c => c.trial_state === "Expired"
   ).length
 
-  // MANAGE PANEL
+  // ── MANAGE PANEL ──────────────────────────────────────────────
+
   if (managed) {
     const days = daysLeft(managed.expires_at)
 
@@ -188,6 +323,11 @@ export function AdminCustomers() {
             onClick={() => {
               setManaged(null)
               setDetails(null)
+              setCanonicalFactoryName("")
+              setFactoryVerificationError("")
+              setShowDeleteConfirm(false)
+              setDeleteConfirmation("")
+              setDeleteError("")
             }}
             className="text-sm text-[#2563eb] font-semibold"
           >
@@ -195,7 +335,7 @@ export function AdminCustomers() {
           </button>
 
           <h1 className="text-lg font-bold text-[#0d1b3e] truncate">
-            {managed.factory_name}
+            {canonicalFactoryName || managed.factory_name}
           </h1>
         </div>
 
@@ -233,9 +373,9 @@ export function AdminCustomers() {
 
           {days !== null && days <= 7 && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700 font-semibold">
-              {days === 0
+              ⚠ {days === 0
                 ? "Expired today"
-                : String(days) + " day" + (days === 1 ? "" : "s") + " remaining"}
+                : `${days} day${days === 1 ? "" : "s"} remaining`}
             </div>
           )}
         </div>
@@ -257,7 +397,10 @@ export function AdminCustomers() {
                 ["Production", details.prodCount],
                 ["Expenses", details.expCount],
               ] as [string, number][]).map(([label, count]) => (
-                <div key={label} className="bg-gray-50 rounded-xl p-3">
+                <div
+                  key={label}
+                  className="bg-gray-50 rounded-xl p-3"
+                >
                   <p className="text-lg font-bold text-[#0d1b3e]">
                     {count}
                   </p>
@@ -289,18 +432,18 @@ export function AdminCustomers() {
                     <p className="text-sm font-medium text-[#0d1b3e]">
                       {member.user_id.slice(0, 16)}…
                     </p>
+
                     <p className="text-xs text-gray-400">
                       {member.role}
                     </p>
                   </div>
 
                   <span
-className={
-  "text-xs px-2 py-1 rounded-full " +
-  (member.role?.toLowerCase() === "owner"
-    ? "bg-blue-100 text-blue-700"
-    : "bg-gray-100 text-gray-600")
-}
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      member.role?.toLowerCase() === "owner"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
                   >
                     {member.role}
                   </span>
@@ -320,8 +463,20 @@ className={
             <p className="text-xs text-gray-500 mt-1">
               Permanently delete this factory and its associated
               operational records. This action cannot be undone.
+              Subscription status does not prevent deletion.
             </p>
           </div>
+
+          {factoryVerificationError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-xs text-red-700">
+                Factory verification failed: {factoryVerificationError}
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Deletion is disabled until the factory can be verified.
+              </p>
+            </div>
+          )}
 
           {!showDeleteConfirm ? (
             <button
@@ -330,13 +485,17 @@ className={
                 setDeleteError("")
                 setShowDeleteConfirm(true)
               }}
-              className="w-full bg-red-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-red-700"
+              disabled={
+                detailsLoading ||
+                !canonicalFactoryName ||
+                !!factoryVerificationError
+              }
+              className="w-full bg-red-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Delete Factory Permanently
             </button>
           ) : (
             <div className="space-y-3">
-
               <div className="bg-red-50 rounded-lg p-3">
                 <p className="text-sm font-semibold text-red-800">
                   Are you absolutely sure?
@@ -347,7 +506,7 @@ className={
                 </p>
 
                 <p className="text-sm font-bold text-red-900 mt-2">
-                  {managed.factory_name}
+                  {canonicalFactoryName}
                 </p>
               </div>
 
@@ -358,7 +517,10 @@ className={
               <input
                 type="text"
                 value={deleteConfirmation}
-                onChange={e => setDeleteConfirmation(e.target.value)}
+                onChange={e => {
+                  setDeleteConfirmation(e.target.value)
+                  setDeleteError("")
+                }}
                 placeholder="Enter factory name"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
               />
@@ -386,7 +548,8 @@ className={
                   onClick={handleDeleteFactory}
                   disabled={
                     deleting ||
-                    deleteConfirmation !== managed.factory_name
+                    !canonicalFactoryName ||
+                    deleteConfirmation !== canonicalFactoryName
                   }
                   className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -396,12 +559,12 @@ className={
             </div>
           )}
         </div>
-
       </div>
     )
   }
 
-  // CUSTOMER LIST
+  // ── CUSTOMER LIST ─────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="p-6 text-sm text-gray-400">
@@ -413,10 +576,17 @@ className={
   return (
     <div className="p-4 space-y-5 pb-24">
 
+      {deleteSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
+          {deleteSuccess}
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-[#0d1b3e]">
           Customers
         </h1>
+
         <p className="text-sm text-gray-500">
           AquaOps Subscriber Management
         </p>
@@ -429,14 +599,19 @@ className={
           ["Active", activeCustomers, "text-green-600"],
           ["Trial", trialCustomers, "text-blue-600"],
           ["Expired", expiredCustomers, "text-red-600"],
-        ] as [string, number, string][]).map(([label, value, color]) => (
-          <div key={label} className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className={"text-2xl font-bold " + color}>
-              {value}
-            </p>
-          </div>
-        ))}
+        ] as [string, number, string][]).map(
+          ([label, value, color]) => (
+            <div
+              key={label}
+              className="bg-white rounded-2xl p-4 shadow-sm"
+            >
+              <p className="text-xs text-gray-500">{label}</p>
+              <p className={`text-2xl font-bold ${color}`}>
+                {value}
+              </p>
+            </div>
+          )
+        )}
       </div>
 
       {/* CUSTOMER LIST */}
@@ -447,10 +622,9 @@ className={
 
           return (
             <div
-              key={customer.factory_id + "-" + index}
+              key={`${customer.factory_id}-${index}`}
               className="bg-white rounded-2xl p-4 shadow-sm"
             >
-
               {/* HEADER ROW */}
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
@@ -466,14 +640,13 @@ className={
                 </div>
 
                 <span
-                  className={
-                    "ml-2 shrink-0 text-xs px-3 py-1 rounded-full font-medium " +
-                    (customer.status === "Active"
+                  className={`ml-2 shrink-0 text-xs px-3 py-1 rounded-full font-medium ${
+                    customer.status === "Active"
                       ? "bg-green-100 text-green-700"
                       : customer.status === "Trial"
                         ? "bg-blue-100 text-blue-700"
-                        : "bg-red-100 text-red-700")
-                  }
+                        : "bg-red-100 text-red-700"
+                  }`}
                 >
                   {customer.status}
                 </span>
@@ -483,7 +656,9 @@ className={
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                 <div>
                   <p className="text-gray-400">Plan</p>
-                  <p className="font-medium">{customer.plan || "—"}</p>
+                  <p className="font-medium">
+                    {customer.plan || "—"}
+                  </p>
                 </div>
 
                 <div>
@@ -495,7 +670,7 @@ className={
 
                 <div>
                   <p className="text-gray-400">Days Left</p>
-                  <p className={"font-medium " + (urgentDays ? "text-red-600" : "")}>
+                  <p className={`font-medium ${urgentDays ? "text-red-600" : ""}`}>
                     {days !== null ? days : "—"}
                   </p>
                 </div>
@@ -513,7 +688,9 @@ className={
                   customer.user_count !== null && (
                     <div>
                       <p className="text-gray-400">Users</p>
-                      <p className="font-medium">{customer.user_count}</p>
+                      <p className="font-medium">
+                        {customer.user_count}
+                      </p>
                     </div>
                   )}
 
@@ -530,9 +707,9 @@ className={
               {/* EXPIRY WARNING */}
               {urgentDays && (
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-700 font-semibold">
-                  {days === 0
+                  ⚠ {days === 0
                     ? "Expires today"
-                    : String(days) + " day" + (days === 1 ? "" : "s") + " left"}
+                    : `${days} day${days === 1 ? "" : "s"} left`}
                 </div>
               )}
 
@@ -553,7 +730,6 @@ className={
           </p>
         )}
       </div>
-
     </div>
   )
 }
