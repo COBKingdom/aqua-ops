@@ -2,48 +2,59 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
 interface Customer {
-  factory_id:     string
-  factory_name:   string
-  owner_name?:    string
-  status:         string
-  plan:           string
-  trial_state:    string
-  started_at:     string | null
-  expires_at:     string | null
-  signup_date:    string | null
-  user_count?:    number
+  factory_id: string
+  factory_name: string
+  owner_name?: string
+  status: string
+  plan: string
+  trial_state: string
+  started_at: string | null
+  expires_at: string | null
+  signup_date: string | null
+  user_count?: number
   last_activity?: string | null
 }
 
 interface FactoryMember {
-  id:      string
+  id: string
   user_id: string
-  role:    string
+  role: string
 }
 
 interface FactoryDetails {
-  members:    FactoryMember[]
+  members: FactoryMember[]
   salesCount: number
-  prodCount:  number
-  expCount:   number
+  prodCount: number
+  expCount: number
 }
 
 export function AdminCustomers() {
-  const [loading, setLoading]               = useState(true)
-  const [customers, setCustomers]           = useState<Customer[]>([])
-  const [managed, setManaged]               = useState<Customer | null>(null)
-  const [details, setDetails]               = useState<FactoryDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [managed, setManaged] = useState<Customer | null>(null)
+  const [details, setDetails] = useState<FactoryDetails | null>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
 
-  useEffect(() => { loadCustomers() }, [])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+
+  useEffect(() => {
+    loadCustomers()
+  }, [])
 
   const loadCustomers = async () => {
     setLoading(true)
+
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("saas_customers")
         .select("*")
         .order("signup_date", { ascending: false })
+
+      if (error) throw error
+
       setCustomers(data || [])
     } catch (err) {
       console.error(err)
@@ -56,19 +67,41 @@ export function AdminCustomers() {
     setManaged(customer)
     setDetails(null)
     setDetailsLoading(true)
+    setShowDeleteConfirm(false)
+    setDeleteConfirmation("")
+    setDeleteError("")
+
     try {
       const id = customer.factory_id
-      const [membersRes, salesRes, prodRes, expRes] = await Promise.all([
-        supabase.from("factory_users").select("id, user_id, role").eq("factory_id", id),
-        supabase.from("sales").select("id", { count: "exact", head: true }).eq("factory_id", id),
-        supabase.from("production").select("id", { count: "exact", head: true }).eq("factory_id", id),
-        supabase.from("expenses").select("id", { count: "exact", head: true }).eq("factory_id", id),
-      ])
+
+      const [membersRes, salesRes, prodRes, expRes] =
+        await Promise.all([
+          supabase
+            .from("factory_users")
+            .select("id, user_id, role")
+            .eq("factory_id", id),
+
+          supabase
+            .from("sales")
+            .select("id", { count: "exact", head: true })
+            .eq("factory_id", id),
+
+          supabase
+            .from("production")
+            .select("id", { count: "exact", head: true })
+            .eq("factory_id", id),
+
+          supabase
+            .from("expenses")
+            .select("id", { count: "exact", head: true })
+            .eq("factory_id", id),
+        ])
+
       setDetails({
-        members:    membersRes.data || [],
-        salesCount: salesRes.count  || 0,
-        prodCount:  prodRes.count   || 0,
-        expCount:   expRes.count    || 0,
+        members: membersRes.data || [],
+        salesCount: salesRes.count || 0,
+        prodCount: prodRes.count || 0,
+        expCount: expRes.count || 0,
       })
     } catch (err) {
       console.error(err)
@@ -77,17 +110,72 @@ export function AdminCustomers() {
     }
   }
 
-  function daysLeft(expiresAt: string | null): number | null {
-    if (!expiresAt) return null
-    return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000))
+  // Permanently delete selected factory
+  const handleDeleteFactory = async () => {
+    if (!managed || deleteConfirmation !== managed.factory_name) return
+
+    setDeleting(true)
+    setDeleteError("")
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "admin-delete-factory",
+        {
+          body: {
+            factory_id: managed.factory_id,
+            confirmation_name: deleteConfirmation,
+          },
+        }
+      )
+
+      if (error) throw error
+
+      if (!data?.success) {
+        throw new Error(
+          data?.error || data?.message || "Factory deletion failed."
+        )
+      }
+
+      setManaged(null)
+      setDetails(null)
+      setShowDeleteConfirm(false)
+      setDeleteConfirmation("")
+
+      await loadCustomers()
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Unable to delete factory."
+      )
+    } finally {
+      setDeleting(false)
+    }
   }
 
-  const totalCustomers   = customers.length
-  const activeCustomers  = customers.filter(c => c.status === "Active").length
-  const trialCustomers   = customers.filter(c => c.status === "Trial").length
-  const expiredCustomers = customers.filter(c => c.trial_state === "Expired").length
+  function daysLeft(expiresAt: string | null): number | null {
+    if (!expiresAt) return null
 
-  // ── MANAGE PANEL (read-only) ───────────────────────────────────────────────
+    return Math.max(
+      0,
+      Math.ceil(
+        (new Date(expiresAt).getTime() - Date.now()) / 86_400_000
+      )
+    )
+  }
+
+  const totalCustomers = customers.length
+  const activeCustomers = customers.filter(
+    c => c.status === "Active"
+  ).length
+
+  const trialCustomers = customers.filter(
+    c => c.status === "Trial"
+  ).length
+
+  const expiredCustomers = customers.filter(
+    c => c.trial_state === "Expired"
+  ).length
+
+  // MANAGE PANEL
   if (managed) {
     const days = daysLeft(managed.expires_at)
 
@@ -97,25 +185,44 @@ export function AdminCustomers() {
         {/* BACK */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setManaged(null); setDetails(null) }}
+            onClick={() => {
+              setManaged(null)
+              setDetails(null)
+            }}
             className="text-sm text-[#2563eb] font-semibold"
           >
             ← Back
           </button>
-          <h1 className="text-lg font-bold text-[#0d1b3e] truncate">{managed.factory_name}</h1>
+
+          <h1 className="text-lg font-bold text-[#0d1b3e] truncate">
+            {managed.factory_name}
+          </h1>
         </div>
 
         {/* FACTORY INFO */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-[#0d1b3e]">Factory Details</h2>
+          <h2 className="text-sm font-semibold text-[#0d1b3e]">
+            Factory Details
+          </h2>
+
           <div className="grid grid-cols-2 gap-3 text-sm">
             {([
-              ["Plan",        managed.plan       || "—"],
-              ["Status",      managed.status     || "—"],
+              ["Plan", managed.plan || "—"],
+              ["Status", managed.status || "—"],
               ["Trial State", managed.trial_state || "—"],
-              ["Owner",       managed.owner_name  || "—"],
-              ["Joined",      managed.signup_date  ? new Date(managed.signup_date).toLocaleDateString()  : "—"],
-              ["Expires",     managed.expires_at   ? new Date(managed.expires_at).toLocaleDateString()   : "—"],
+              ["Owner", managed.owner_name || "—"],
+              [
+                "Joined",
+                managed.signup_date
+                  ? new Date(managed.signup_date).toLocaleDateString()
+                  : "—",
+              ],
+              [
+                "Expires",
+                managed.expires_at
+                  ? new Date(managed.expires_at).toLocaleDateString()
+                  : "—",
+              ],
             ] as [string, string][]).map(([label, value]) => (
               <div key={label}>
                 <p className="text-gray-400 text-xs">{label}</p>
@@ -126,25 +233,34 @@ export function AdminCustomers() {
 
           {days !== null && days <= 7 && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700 font-semibold">
-              ⚠ {days === 0 ? "Expired today" : `${days} day${days === 1 ? "" : "s"} remaining`}
+              {days === 0
+                ? "Expired today"
+                : String(days) + " day" + (days === 1 ? "" : "s") + " remaining"}
             </div>
           )}
         </div>
 
         {/* RECORD COUNTS */}
         {detailsLoading ? (
-          <div className="bg-white rounded-2xl p-4 shadow-sm text-sm text-gray-400">Loading details…</div>
+          <div className="bg-white rounded-2xl p-4 shadow-sm text-sm text-gray-400">
+            Loading details…
+          </div>
         ) : details && (
           <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-            <h2 className="text-sm font-semibold text-[#0d1b3e]">Data Summary</h2>
+            <h2 className="text-sm font-semibold text-[#0d1b3e]">
+              Data Summary
+            </h2>
+
             <div className="grid grid-cols-3 gap-3 text-center">
               {([
-                ["Sales",      details.salesCount],
+                ["Sales", details.salesCount],
                 ["Production", details.prodCount],
-                ["Expenses",   details.expCount],
+                ["Expenses", details.expCount],
               ] as [string, number][]).map(([label, count]) => (
                 <div key={label} className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-lg font-bold text-[#0d1b3e]">{count}</p>
+                  <p className="text-lg font-bold text-[#0d1b3e]">
+                    {count}
+                  </p>
                   <p className="text-xs text-gray-500">{label}</p>
                 </div>
               ))}
@@ -152,28 +268,40 @@ export function AdminCustomers() {
           </div>
         )}
 
-        {/* TEAM MEMBERS (read-only) */}
+        {/* TEAM MEMBERS */}
         {details && (
           <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
             <h2 className="text-sm font-semibold text-[#0d1b3e]">
               Team Members ({details.members.length})
             </h2>
+
             {details.members.length === 0 ? (
-              <p className="text-sm text-gray-400">No team members found.</p>
+              <p className="text-sm text-gray-400">
+                No team members found.
+              </p>
             ) : (
               details.members.map(member => (
-                <div key={member.id} className="flex items-center justify-between py-1">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between py-1"
+                >
                   <div>
                     <p className="text-sm font-medium text-[#0d1b3e]">
                       {member.user_id.slice(0, 16)}…
                     </p>
-                    <p className="text-xs text-gray-400">{member.role}</p>
+                    <p className="text-xs text-gray-400">
+                      {member.role}
+                    </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    member.role?.toLowerCase() === "owner"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}>
+
+                  <span
+className={
+  "text-xs px-2 py-1 rounded-full " +
+  (member.role?.toLowerCase() === "owner"
+    ? "bg-blue-100 text-blue-700"
+    : "bg-gray-100 text-gray-600")
+}
+                  >
                     {member.role}
                   </span>
                 </div>
@@ -182,34 +310,131 @@ export function AdminCustomers() {
           </div>
         )}
 
+        {/* DANGER ZONE */}
+        <div className="bg-white border border-red-200 rounded-2xl p-4 space-y-3">
+          <div>
+            <h2 className="text-sm font-bold text-red-700">
+              Danger Zone
+            </h2>
+
+            <p className="text-xs text-gray-500 mt-1">
+              Permanently delete this factory and its associated
+              operational records. This action cannot be undone.
+            </p>
+          </div>
+
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => {
+                setDeleteConfirmation("")
+                setDeleteError("")
+                setShowDeleteConfirm(true)
+              }}
+              className="w-full bg-red-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-red-700"
+            >
+              Delete Factory Permanently
+            </button>
+          ) : (
+            <div className="space-y-3">
+
+              <div className="bg-red-50 rounded-lg p-3">
+                <p className="text-sm font-semibold text-red-800">
+                  Are you absolutely sure?
+                </p>
+
+                <p className="text-xs text-red-700 mt-1">
+                  You are about to permanently delete:
+                </p>
+
+                <p className="text-sm font-bold text-red-900 mt-2">
+                  {managed.factory_name}
+                </p>
+              </div>
+
+              <label className="block text-xs font-semibold text-gray-700">
+                Type the exact factory name to confirm
+              </label>
+
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={e => setDeleteConfirmation(e.target.value)}
+                placeholder="Enter factory name"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+
+              {deleteError && (
+                <p className="text-xs text-red-600">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    setDeleteConfirmation("")
+                    setDeleteError("")
+                  }}
+                  disabled={deleting}
+                  className="flex-1 border border-gray-300 rounded-lg py-2 text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleDeleteFactory}
+                  disabled={
+                    deleting ||
+                    deleteConfirmation !== managed.factory_name
+                  }
+                  className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deleting ? "Deleting..." : "Confirm Delete"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     )
   }
 
-  // ── CUSTOMER LIST ─────────────────────────────────────────────────────────
+  // CUSTOMER LIST
   if (loading) {
-    return <div className="p-6 text-sm text-gray-400">Loading…</div>
+    return (
+      <div className="p-6 text-sm text-gray-400">
+        Loading…
+      </div>
+    )
   }
 
   return (
     <div className="p-4 space-y-5 pb-24">
 
       <div>
-        <h1 className="text-2xl font-bold text-[#0d1b3e]">Customers</h1>
-        <p className="text-sm text-gray-500">AquaOps Subscriber Management</p>
+        <h1 className="text-2xl font-bold text-[#0d1b3e]">
+          Customers
+        </h1>
+        <p className="text-sm text-gray-500">
+          AquaOps Subscriber Management
+        </p>
       </div>
 
       {/* SUMMARY */}
       <div className="grid grid-cols-2 gap-3">
         {([
-          ["Total",   totalCustomers,   "text-[#0d1b3e]"],
-          ["Active",  activeCustomers,  "text-green-600"],
-          ["Trial",   trialCustomers,   "text-blue-600"],
+          ["Total", totalCustomers, "text-[#0d1b3e]"],
+          ["Active", activeCustomers, "text-green-600"],
+          ["Trial", trialCustomers, "text-blue-600"],
           ["Expired", expiredCustomers, "text-red-600"],
         ] as [string, number, string][]).map(([label, value, color]) => (
           <div key={label} className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-xs text-gray-500">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            <p className={"text-2xl font-bold " + color}>
+              {value}
+            </p>
           </div>
         ))}
       </div>
@@ -222,24 +447,34 @@ export function AdminCustomers() {
 
           return (
             <div
-              key={`${customer.factory_id}-${index}`}
+              key={customer.factory_id + "-" + index}
               className="bg-white rounded-2xl p-4 shadow-sm"
             >
+
               {/* HEADER ROW */}
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-[#0d1b3e] truncate">{customer.factory_name}</h3>
+                  <h3 className="font-semibold text-[#0d1b3e] truncate">
+                    {customer.factory_name}
+                  </h3>
+
                   {customer.owner_name && (
-                    <p className="text-xs text-gray-500 mt-0.5">{customer.owner_name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {customer.owner_name}
+                    </p>
                   )}
                 </div>
-                <span className={`ml-2 shrink-0 text-xs px-3 py-1 rounded-full font-medium ${
-                  customer.status === "Active"
-                    ? "bg-green-100 text-green-700"
-                    : customer.status === "Trial"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-red-100 text-red-700"
-                }`}>
+
+                <span
+                  className={
+                    "ml-2 shrink-0 text-xs px-3 py-1 rounded-full font-medium " +
+                    (customer.status === "Active"
+                      ? "bg-green-100 text-green-700"
+                      : customer.status === "Trial"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700")
+                  }
+                >
                   {customer.status}
                 </span>
               </div>
@@ -250,28 +485,38 @@ export function AdminCustomers() {
                   <p className="text-gray-400">Plan</p>
                   <p className="font-medium">{customer.plan || "—"}</p>
                 </div>
+
                 <div>
                   <p className="text-gray-400">Trial</p>
-                  <p className="font-medium">{customer.trial_state || "—"}</p>
+                  <p className="font-medium">
+                    {customer.trial_state || "—"}
+                  </p>
                 </div>
+
                 <div>
                   <p className="text-gray-400">Days Left</p>
-                  <p className={`font-medium ${urgentDays ? "text-red-600" : ""}`}>
+                  <p className={"font-medium " + (urgentDays ? "text-red-600" : "")}>
                     {days !== null ? days : "—"}
                   </p>
                 </div>
+
                 <div>
                   <p className="text-gray-400">Joined</p>
                   <p className="font-medium">
-                    {customer.signup_date ? new Date(customer.signup_date).toLocaleDateString() : "—"}
+                    {customer.signup_date
+                      ? new Date(customer.signup_date).toLocaleDateString()
+                      : "—"}
                   </p>
                 </div>
-                {customer.user_count !== undefined && customer.user_count !== null && (
-                  <div>
-                    <p className="text-gray-400">Users</p>
-                    <p className="font-medium">{customer.user_count}</p>
-                  </div>
-                )}
+
+                {customer.user_count !== undefined &&
+                  customer.user_count !== null && (
+                    <div>
+                      <p className="text-gray-400">Users</p>
+                      <p className="font-medium">{customer.user_count}</p>
+                    </div>
+                  )}
+
                 {customer.last_activity && (
                   <div>
                     <p className="text-gray-400">Last Active</p>
@@ -285,7 +530,9 @@ export function AdminCustomers() {
               {/* EXPIRY WARNING */}
               {urgentDays && (
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-700 font-semibold">
-                  ⚠ {days === 0 ? "Expires today" : `${days} day${days === 1 ? "" : "s"} left`}
+                  {days === 0
+                    ? "Expires today"
+                    : String(days) + " day" + (days === 1 ? "" : "s") + " left"}
                 </div>
               )}
 
@@ -301,7 +548,9 @@ export function AdminCustomers() {
         })}
 
         {customers.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-8">No customers found.</p>
+          <p className="text-sm text-gray-400 text-center py-8">
+            No customers found.
+          </p>
         )}
       </div>
 
