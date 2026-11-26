@@ -89,161 +89,190 @@ export function AquaOpsEntry() {
           return
         }
 
-        // ── Check for existing membership ────────────────────
-        const { data: membership } = await supabase
-          .from("factory_users")
-          .select("factory_id")
-          .eq("user_id", authData.user.id)
-          .maybeSingle()
 
-        // ── Existing member → go straight to dashboard ───────
-        if (membership) {
-          window.location.href = "/aquaops"
+        // Check for an existing factory membership.
+        const { data: membership, error: membershipLookupError } =
+          await supabase
+            .from("factory_users")
+            .select("factory_id")
+            .eq("user_id", authData.user.id)
+            .maybeSingle()
+
+        if (membershipLookupError) {
+          console.error("Membership lookup failed:", membershipLookupError)
+          setErrorMsg("Unable to verify your factory membership. Please try again.")
           return
         }
-
-        // ── First login after email verification ─────────────
-        const pendingFactoryName =
-          authData.user.user_metadata?.pending_factory_name ||
-          localStorage.getItem("pendingFactoryName")
-
-        if (!pendingFactoryName) {
-          setErrorMsg(
-            "Factory name not found. Please register again or contact support."
-          )
-          return
-        }
-
-        // ── Guard: check if factory already exists for user ──
-        const { data: existingFactory } = await supabase
-          .from("factories")
-          .select("id")
-          .eq("user_id", authData.user.id)
-          .maybeSingle()
 
         let factoryId: string
+        let isFirstTimeSetup = false
+        let welcomeFactoryName = ""
 
-        if (existingFactory) {
-          factoryId = existingFactory.id
+        if (membership) {
+          // Existing member: reuse the factory linked to this membership.
+          factoryId = membership.factory_id
         } else {
-          const { data: newFactory, error: factoryError } = await supabase
-            .from("factories")
-            .insert({
-              user_id: authData.user.id,
-              name: pendingFactoryName,
-              currency_code: "NGN",
-              currency_symbol: "₦",
-            })
-            .select("id")
-            .single()
+          // First login after email verification.
+          const pendingFactoryName =
+            authData.user.user_metadata?.pending_factory_name ||
+            localStorage.getItem("pendingFactoryName")
 
-          if (factoryError || !newFactory) {
+          if (!pendingFactoryName) {
             setErrorMsg(
-              "Failed to create your factory. Please try logging in again."
+              "Factory name not found. Please register again or contact support."
             )
             return
           }
 
-          factoryId = newFactory.id
-        }
+          welcomeFactoryName = pendingFactoryName
+          isFirstTimeSetup = true
 
-        // ── Guard: check if membership already exists ────────
-        const { data: existingMembership } = await supabase
-          .from("factory_users")
-          .select("factory_id")
-          .eq("user_id", authData.user.id)
-          .maybeSingle()
+          // Check whether a factory was already created for this user.
+          const { data: existingFactory, error: factoryLookupError } =
+            await supabase
+              .from("factories")
+              .select("id")
+              .eq("user_id", authData.user.id)
+              .maybeSingle()
 
-        if (!existingMembership) {
-          const { error: membershipError } = await supabase
-            .from("factory_users")
-            .insert({
-              factory_id: factoryId,
-              user_id: authData.user.id,
-              role: "owner",
-            })
-
-          if (membershipError) {
-            setErrorMsg("Failed to link your account to the factory. Please contact support.")
+          if (factoryLookupError) {
+            console.error("Factory lookup failed:", factoryLookupError)
+            setErrorMsg("Unable to verify your factory. Please try again.")
             return
+          }
+
+          if (existingFactory) {
+            factoryId = existingFactory.id
+          } else {
+            const { data: newFactory, error: factoryError } =
+              await supabase
+                .from("factories")
+                .insert({
+                  user_id: authData.user.id,
+                  name: pendingFactoryName,
+                  currency_code: "NGN",
+                  currency_symbol: "₦",
+                })
+                .select("id")
+                .single()
+
+            if (factoryError || !newFactory) {
+              console.error("Factory creation failed:", factoryError)
+              setErrorMsg(
+                "Failed to create your factory. Please try logging in again."
+              )
+              return
+            }
+
+            factoryId = newFactory.id
+          }
+
+          // Create the owner membership if it does not already exist.
+          const { data: existingMembership, error: secondMembershipLookupError } =
+            await supabase
+              .from("factory_users")
+              .select("factory_id")
+              .eq("user_id", authData.user.id)
+              .maybeSingle()
+
+          if (secondMembershipLookupError) {
+            console.error(
+              "Membership verification failed:",
+              secondMembershipLookupError
+            )
+            setErrorMsg("Unable to verify your factory membership. Please try again.")
+            return
+          }
+
+          if (!existingMembership) {
+            const { error: membershipError } = await supabase
+              .from("factory_users")
+              .insert({
+                factory_id: factoryId,
+                user_id: authData.user.id,
+                role: "owner",
+              })
+
+            if (membershipError) {
+              console.error("Membership creation failed:", membershipError)
+              setErrorMsg(
+                "Failed to link your account to the factory. Please contact support."
+              )
+              return
+            }
+          } else {
+            factoryId = existingMembership.factory_id
           }
         }
 
-        // ── Guard: check if subscription already exists ──────
-        const { data: existingSubscription } = await supabase
-          .from("subscriptions")
-          .select("id")
-          .eq("user_id", authData.user.id)
-          .maybeSingle()
+        // Activate or retrieve the subscription through the secure Edge Function.
+        const { data: activationData, error: activationError } =
+          await supabase.functions.invoke("activate-trial", {
+            body: {
+              factory_id: factoryId,
+            },
+          })
 
-if (!existingSubscription) {
-  const startedAt = new Date()
-  const expiresAt = new Date()
-  expiresAt.setDate(expiresAt.getDate() + 14)
+        if (activationError) {
+          console.error("Trial activation request failed:", activationError)
+          setErrorMsg(
+            "We could not verify your subscription. Please try again or contact support."
+          )
+          return
+        }
 
-  const {
-    error: subscriptionError,
-  } = await supabase
-    .from("subscriptions")
-    .insert({
-      user_id: authData.user.id,
-      plan: "Starter",
-      status: "Trial",
-      user_limit: 1,
-      renewal_status: "pending",
-      started_at:
-        startedAt.toISOString(),
-      expires_at:
-        expiresAt.toISOString(),
-    })
+        if (!activationData?.success || !activationData?.subscription) {
+          console.error("Trial activation was unsuccessful:", activationData)
+          setErrorMsg(
+            activationData?.error ||
+              "Failed to activate your trial. Please contact support."
+          )
+          return
+        }
 
-  if (subscriptionError) {
-    setErrorMsg("Failed to activate trial. Please contact support.")
-    return
-  }
+        // Welcome emails are sent only during first-time factory setup.
+        if (isFirstTimeSetup) {
+          localStorage.removeItem("pendingFactoryName")
 
-  try {
-    await fetch(
-      `${import.meta.env.VITE_API_URL}/send-welcome`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: authData.user.email ?? email,
-          factoryName: pendingFactoryName,
-        }),
+          try {
+            await fetch(
+              `${import.meta.env.VITE_API_URL}/send-welcome`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email: authData.user.email ?? email,
+                  factoryName: welcomeFactoryName,
+                }),
+              }
+            )
+          } catch (err) {
+            console.error("Welcome email failed:", err)
+          }
+
+          // Existing Replit welcome-email endpoint.
+          fetch("https://aqua-ops.replit.app/api/send-welcome", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: authData.user.id,
+              email: authData.user.email,
+              factoryName: welcomeFactoryName,
+            }),
+          }).catch((err) => {
+            console.error("Replit welcome email failed:", err)
+          })
+        }
+
+        // Continue only after subscription activation is confirmed.
+        window.location.href = "/aquaops"
+        return
       }
-    )
-  } catch (err) {
-    console.error(
-      "Welcome email failed:",
-      err
-    )
-  }
-}
 
-  localStorage.removeItem(
-    "pendingFactoryName"
-  )
-
-  // Send welcome email — fire-and-forget, does not block login
-  fetch("https://aqua-ops.replit.app/api/send-welcome", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: authData.user.id,
-      email: authData.user.email,
-      factoryName: pendingFactoryName,
-    }),
-  }).catch(() => {})
-
-  window.location.href =
-    "/aquaops"
-
-  return
-}
 
       // ── SIGNUP ───────────────────────────────────────────────
 
